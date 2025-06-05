@@ -1,21 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Button } from '@/components/ui/button';
-import { 
-  Home, 
-  Gamepad2, 
-  Wallet, 
-  ShoppingBag, 
-  Settings, 
-  LogOut, 
-  Sun, 
-  Moon,
-  User,
-  Crown,
-  Shield
-} from 'lucide-react';
+import { Moon, Sun, Menu, X, Home, Gamepad2, Wallet, ShoppingBag, Settings, LogOut, MessageSquare } from 'lucide-react';
+import CustomerServiceScript from './CustomerServiceScript';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -26,119 +16,143 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChange }) => {
   const { user, logout } = useUser();
   const { theme, toggleTheme } = useTheme();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const navigationItems = [
+  const menuItems = [
     { id: 'home', label: '首頁', icon: Home },
-    { id: 'games', label: '遊戲', icon: Gamepad2 },
-    { id: 'wallet', label: '錢包', icon: Wallet },
-    { id: 'shop', label: '商城', icon: ShoppingBag },
-    ...(user?.role === 'admin' ? [{ id: 'admin', label: '管理', icon: Settings }] : []),
+    { id: 'games', label: '遊戲娛樂', icon: Gamepad2 },
+    { id: 'wallet', label: '我的錢包', icon: Wallet },
+    { id: 'shop', label: '積分商城', icon: ShoppingBag },
+    ...(user?.role === 'admin' ? [{ id: 'admin', label: '管理後台', icon: Settings }] : [])
   ];
 
-  const getRoleIcon = () => {
-    switch (user?.role) {
-      case 'admin': return <Shield className="w-5 h-5 text-red-500" />;
-      case 'vip': return <Crown className="w-5 h-5 text-yellow-500" />;
-      default: return <User className="w-5 h-5 text-blue-500" />;
-    }
-  };
-
-  const getRoleBadge = () => {
-    switch (user?.role) {
-      case 'admin': return 'bg-red-500';
-      case 'vip': return 'bg-gradient-to-r from-yellow-400 to-orange-500';
-      default: return 'bg-blue-500';
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* 頂部導航欄 */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Crown className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-background">
+      {/* 載入客服聊天工具 */}
+      <CustomerServiceScript />
+      
+      {/* 頂部導航 */}
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="md:hidden"
+            >
+              {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+            
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">P</span>
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 積分會員系統
-              </h1>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-2 text-sm">
+              <span className="text-muted-foreground">歡迎回來,</span>
+              <span className="font-medium">{user?.username}</span>
+              <span className={`px-2 py-1 rounded text-xs ${
+                user?.role === 'admin' ? 'bg-red-100 text-red-700' :
+                user?.role === 'vip' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {user?.role === 'admin' ? '管理員' : user?.role === 'vip' ? 'VIP會員' : '普通會員'}
+              </span>
             </div>
 
-            {/* 用戶信息 */}
-            <div className="flex items-center space-x-4">
-              {/* 主題切換 */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                className="rounded-full p-2"
-              >
-                {theme === 'light' ? 
-                  <Moon className="w-5 h-5" /> : 
-                  <Sun className="w-5 h-5" />
-                }
-              </Button>
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
 
-              {/* 用戶資訊 */}
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <div className="flex items-center space-x-2">
-                    {getRoleIcon()}
-                    <span className="text-sm font-medium">{user?.username}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground">積分: {user?.points}</span>
-                    <div className={`w-2 h-2 rounded-full ${getRoleBadge()}`}></div>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <Button variant="ghost" size="icon" onClick={logout} className="text-red-600">
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
 
-      <div className="flex max-w-7xl mx-auto">
-        {/* 側邊導航 */}
-        <aside className="w-64 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md min-h-[calc(100vh-4rem)] p-4">
-          <nav className="space-y-2">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-              
-              return (
-                <Button
-                  key={item.id}
-                  variant={isActive ? "default" : "ghost"}
-                  className={`w-full justify-start ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  onClick={() => onPageChange(item.id)}
-                >
-                  <Icon className="w-5 h-5 mr-3" />
-                  {item.label}
-                </Button>
-              );
-            })}
-          </nav>
+      <div className="flex">
+        {/* 側邊欄 */}
+        <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-background border-r transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } pt-16 md:pt-0`}>
+          <div className="flex flex-col h-full">
+            <div className="flex-1 py-6">
+              <nav className="space-y-2 px-4">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.id}
+                      variant={currentPage === item.id ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => {
+                        onPageChange(item.id);
+                        setIsSidebarOpen(false);
+                      }}
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* 用戶資訊卡片 */}
+            <div className="p-4 border-t">
+              <Card className="p-4">
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                    {user?.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium">{user?.username}</p>
+                    <p className="text-sm text-muted-foreground">積分: {user?.points?.toLocaleString()}</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
         </aside>
 
-        {/* 主要內容區域 */}
-        <main className="flex-1 p-6">
-          {children}
+        {/* 主內容區域 */}
+        <main className="flex-1 p-6 md:ml-0">
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
         </main>
+      </div>
+
+      {/* 移動端遮罩 */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* 客服聊天按鈕 */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          size="lg"
+          className="rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+          onClick={() => {
+            // 觸發客服聊天窗口
+            // 這裡可以添加觸發客服聊天的邏輯
+            console.log('打開客服聊天');
+          }}
+        >
+          <MessageSquare className="w-5 h-5 mr-2" />
+          客服聊天
+        </Button>
       </div>
     </div>
   );

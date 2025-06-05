@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
-import { Target, Zap, Coins, Trophy, Star, Gift, Building } from 'lucide-react';
+import { Target, Zap, Coins, Trophy, Star, Gift, Flag } from 'lucide-react';
 
 const GamesPage = () => {
   const { user, updatePoints } = useUser();
@@ -65,10 +65,10 @@ const GamesPage = () => {
       gradient: 'from-blue-500 to-cyan-500'
     },
     {
-      id: 'city',
-      title: '升級你的城市',
-      description: '建造並管理您的專屬城市，完成任務獲得獎勵！',
-      icon: Building,
+      id: 'country',
+      title: '建立你的國家',
+      description: '建造並管理您的專屬國家，發布法律、管理經濟、外交等獲得獎勵！',
+      icon: Flag,
       baseReward: 100,
       gradient: 'from-green-500 to-emerald-500'
     }
