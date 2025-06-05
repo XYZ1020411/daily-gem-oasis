@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, UserPlus, Crown, Star, Shield } from 'lucide-react';
+import { LogIn, UserPlus, Crown, Star, Shield, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useUser();
   const { toast } = useToast();
@@ -44,16 +45,13 @@ const LoginPage = () => {
     }
   };
 
-  const quickLogin = async (account: string) => {
-    setIsLoading(true);
-    const success = await login(account, 'password');
-    if (success) {
-      toast({
-        title: "快速登入成功！",
-        description: `歡迎 ${account}`,
-      });
-    }
-    setIsLoading(false);
+  const quickLogin = (account: string, defaultPassword: string) => {
+    setUsername(account);
+    setPassword(defaultPassword);
+    toast({
+      title: "帳號資訊已填入",
+      description: `帳號: ${account}，請確認密碼後登入`,
+    });
   };
 
   return (
@@ -92,15 +90,24 @@ const LoginPage = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">密碼</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="請輸入密碼"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-white/10 border-white/20 text-white placeholder-white/60"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="請輸入密碼"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/20 text-white placeholder-white/60 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <Button 
                 type="submit" 
@@ -119,33 +126,33 @@ const LoginPage = () => {
           <CardHeader>
             <CardTitle className="text-center text-lg">快速登入</CardTitle>
             <CardDescription className="text-center">
-              使用特殊帳戶快速體驗系統功能
+              點擊下方按鈕快速填入測試帳號資訊
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
-              onClick={() => quickLogin('002')}
+              onClick={() => quickLogin('002', 'admin123')}
               className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
               disabled={isLoading}
             >
               <Shield className="w-4 h-4 mr-2" />
-              管理員 (002)
+              管理員 (002) - 密碼: admin123
             </Button>
             <Button
-              onClick={() => quickLogin('001')}
+              onClick={() => quickLogin('001', 'vip001')}
               className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
               disabled={isLoading}
             >
               <Star className="w-4 h-4 mr-2" />
-              VIP會員 (001)
+              VIP會員 (001) - 密碼: vip001
             </Button>
             <Button
-              onClick={() => quickLogin('vip8888')}
+              onClick={() => quickLogin('vip8888', 'vip8888')}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               disabled={isLoading}
             >
               <Crown className="w-4 h-4 mr-2" />
-              VIP鑽石會員 (vip8888)
+              VIP鑽石會員 (vip8888) - 密碼: vip8888
             </Button>
           </CardContent>
         </Card>
