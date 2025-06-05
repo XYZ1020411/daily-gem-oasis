@@ -8,6 +8,7 @@ import GamesPage from '@/components/GamesPage';
 import WalletPage from '@/components/WalletPage';
 import ShopPage from '@/components/ShopPage';
 import AdminPage from '@/components/AdminPage';
+import InfoPage from '@/components/InfoPage';
 
 const Index = () => {
   const { isLoggedIn } = useUser();
@@ -27,6 +28,8 @@ const Index = () => {
         return <WalletPage />;
       case 'shop':
         return <ShopPage />;
+      case 'info':
+        return <InfoPage />;
       case 'admin':
         return <AdminPage />;
       default:

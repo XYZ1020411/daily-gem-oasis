@@ -210,6 +210,58 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
         </Card>
       </div>
 
+      {/* 資訊服務快速入口 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 group">
+          <CardHeader className="pb-3">
+            <div className="flex items-center space-x-2">
+              <Megaphone className="w-5 h-5 text-indigo-500" />
+              <CardTitle className="text-lg">資訊服務</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-2xl font-bold text-indigo-600">
+                全方位
+              </div>
+              <p className="text-sm text-muted-foreground">天氣預報、新聞資訊、氣象警報</p>
+              <Button 
+                onClick={() => onPageChange('info')} 
+                className="w-full bg-indigo-500 hover:bg-indigo-600"
+              >
+                <Megaphone className="w-4 h-4 mr-2" />
+                查看資訊
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 group">
+          <CardHeader className="pb-3">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              <CardTitle className="text-lg">數據統計</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-2xl font-bold text-emerald-600">
+                實時
+              </div>
+              <p className="text-sm text-muted-foreground">會員活動統計與數據分析</p>
+              <Button 
+                variant="outline"
+                className="w-full"
+                disabled
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                即將開放
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* VIP升級推薦 */}
       {user?.role !== 'vip' && user?.role !== 'admin' && (
         <Card className="bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white animate-pulse-glow">
