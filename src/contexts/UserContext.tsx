@@ -47,6 +47,10 @@ interface UserContextType {
   deleteAnnouncement: (id: string) => void;
   addExchange: (exchange: any) => void;
   redeemGiftCode: (code: string) => boolean;
+  
+  // 測試帳號功能
+  switchToTestAccount: (accountType: 'admin' | 'vip1' | 'vip2') => void;
+  isTestMode: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -68,6 +72,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTestMode, setIsTestMode] = useState(false);
   
   // Mock data - these would normally come from Supabase
   const [users] = useState([]);
@@ -75,6 +80,92 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [exchanges] = useState([]);
   const [announcements] = useState([]);
   const [transactions] = useState([]);
+
+  // 測試帳號資料
+  const testAccounts = {
+    admin: {
+      id: 'test-admin-002',
+      username: 'admin002',
+      display_name: '管理員 (002)',
+      role: 'admin',
+      points: 1000000,
+      vip_level: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_check_in: null,
+      check_in_streak: 0
+    },
+    vip1: {
+      id: 'test-vip-001',
+      username: 'vip001',
+      display_name: 'VIP會員 (001)',
+      role: 'vip',
+      points: 500000,
+      vip_level: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_check_in: null,
+      check_in_streak: 0
+    },
+    vip2: {
+      id: 'test-vip-8888',
+      username: 'vip8888',
+      display_name: 'VIP會員 (vip8888)',
+      role: 'vip',
+      points: 800000,
+      vip_level: 5,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_check_in: null,
+      check_in_streak: 0
+    }
+  };
+
+  // 切換到測試帳號
+  const switchToTestAccount = (accountType: 'admin' | 'vip1' | 'vip2') => {
+    const testProfile = testAccounts[accountType];
+    setProfile(testProfile);
+    setIsTestMode(true);
+    // 創建模擬用戶對象
+    setUser({
+      id: testProfile.id,
+      email: `${testProfile.username}@test.com`,
+      created_at: testProfile.created_at,
+      updated_at: testProfile.updated_at,
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      confirmation_sent_at: testProfile.created_at,
+      confirmed_at: testProfile.created_at,
+      email_confirmed_at: testProfile.created_at,
+      last_sign_in_at: new Date().toISOString(),
+      role: 'authenticated',
+      phone: '',
+      phone_confirmed_at: null,
+      recovery_sent_at: null,
+      email_change: '',
+      email_change_sent_at: null,
+      email_change_confirm_status: 0,
+      new_email: null,
+      invited_at: null,
+      action_link: null,
+      new_phone: null,
+      phone_change: '',
+      phone_change_sent_at: null,
+      phone_change_token: '',
+      identities: [],
+      factors: [],
+      is_anonymous: false
+    } as User);
+    setSession({
+      access_token: 'test-token',
+      refresh_token: 'test-refresh',
+      expires_in: 3600,
+      expires_at: Date.now() / 1000 + 3600,
+      token_type: 'bearer',
+      user: user!
+    } as Session);
+  };
 
   // 載入用戶資料
   const loadUserProfile = async (userId: string) => {
@@ -116,7 +207,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // 刷新用戶資料
   const refreshProfile = async () => {
-    if (user) {
+    if (user && !isTestMode) {
       await loadUserProfile(user.id);
     }
   };
@@ -138,6 +229,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // 更新積分
   const updatePoints = async (amount: number, reason: string) => {
     if (!user || !profile) return;
+
+    if (isTestMode) {
+      // 測試模式下直接更新本地狀態
+      setProfile(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : null);
+      return;
+    }
 
     try {
       // 更新用戶積分
@@ -170,6 +267,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // 登出
   const signOut = async () => {
+    if (isTestMode) {
+      // 測試模式下直接清除狀態
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setIsTestMode(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -233,6 +339,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    if (isTestMode) {
+      setIsLoading(false);
+      return;
+    }
+
     // 設置認證狀態監聽器
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -274,7 +385,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isTestMode]);
 
   const value: UserContextType = {
     user,
@@ -301,7 +412,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     updateAnnouncement,
     deleteAnnouncement,
     addExchange,
-    redeemGiftCode
+    redeemGiftCode,
+    switchToTestAccount,
+    isTestMode
   };
 
   return (
