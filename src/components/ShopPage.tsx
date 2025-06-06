@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,25 +20,25 @@ import {
 } from 'lucide-react';
 
 const ShopPage = () => {
-  const { user, products, exchanges, updatePoints, addExchange } = useUser();
+  const { user, profile, products, exchanges, updatePoints, addExchange } = useUser();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState('全部');
 
   const categories = ['全部', '電子產品', '餐飲券', '購物券'];
 
   const filteredProducts = selectedCategory === '全部' 
-    ? products.filter(p => p.isActive)
-    : products.filter(p => p.isActive && p.category === selectedCategory);
+    ? products.filter((p: any) => p.isActive)
+    : products.filter((p: any) => p.isActive && p.category === selectedCategory);
 
-  const userExchanges = exchanges.filter(e => e.userId === user?.id);
+  const userExchanges = exchanges.filter((e: any) => e.userId === user?.id);
 
   const handleExchange = (product: any) => {
-    if (!user) return;
+    if (!user || !profile) return;
 
-    if (user.points < product.price) {
+    if ((profile.points || 0) < product.price) {
       toast({
         title: "積分不足",
-        description: `您需要 ${product.price} 積分，目前只有 ${user.points} 積分`,
+        description: `您需要 ${product.price} 積分，目前只有 ${profile.points || 0} 積分`,
         variant: "destructive"
       });
       return;
@@ -136,7 +135,7 @@ const ShopPage = () => {
             </div>
             <div>
               <p className="text-sm opacity-90">可用積分</p>
-              <p className="text-2xl font-bold">{user.points.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{(profile?.points || 0).toLocaleString()}</p>
             </div>
           </div>
           <ShoppingBag className="w-8 h-8 opacity-70" />
@@ -159,12 +158,12 @@ const ShopPage = () => {
 
       {/* 商品列表 */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredProducts.map((product) => (
+        {filteredProducts.map((product: any) => (
           <Card key={product.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  {getProductIcon(product.category)}
+                  <Package className="w-6 h-6" />
                   <CardTitle className="text-lg">{product.name}</CardTitle>
                 </div>
                 <Badge variant="outline">{product.category}</Badge>
@@ -187,11 +186,11 @@ const ShopPage = () => {
 
               <Button
                 onClick={() => handleExchange(product)}
-                disabled={user.points < product.price || product.stock <= 0}
+                disabled={(profile?.points || 0) < product.price || product.stock <= 0}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               >
                 <Gift className="w-4 h-4 mr-2" />
-                {user.points < product.price ? '積分不足' : product.stock <= 0 ? '缺貨' : '立即兌換'}
+                {(profile?.points || 0) < product.price ? '積分不足' : product.stock <= 0 ? '缺貨' : '立即兌換'}
               </Button>
             </CardContent>
           </Card>
@@ -219,12 +218,12 @@ const ShopPage = () => {
         <CardContent>
           {userExchanges.length > 0 ? (
             <div className="space-y-3">
-              {userExchanges.slice(0, 5).map((exchange) => {
-                const product = products.find(p => p.id === exchange.productId);
+              {userExchanges.slice(0, 5).map((exchange: any) => {
+                const product = products.find((p: any) => p.id === exchange.productId);
                 return (
                   <div key={exchange.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      {getProductIcon(product?.category || '')}
+                      <Package className="w-6 h-6" />
                       <div>
                         <p className="font-medium">{product?.name || '未知商品'}</p>
                         <p className="text-sm text-muted-foreground">
@@ -234,9 +233,9 @@ const ShopPage = () => {
                     </div>
                     <div className="text-right space-y-1">
                       <div className="flex items-center space-x-2">
-                        {getStatusIcon(exchange.status)}
-                        <Badge className={getStatusColor(exchange.status)}>
-                          {getStatusText(exchange.status)}
+                        <Clock className="w-4 h-4 text-yellow-500" />
+                        <Badge className="bg-yellow-100 text-yellow-800">
+                          待處理
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">

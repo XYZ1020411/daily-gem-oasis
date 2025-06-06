@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 const WalletPage = () => {
-  const { user, transactions, redeemGiftCode } = useUser();
+  const { user, profile, transactions, redeemGiftCode } = useUser();
   const { toast } = useToast();
   const [giftCode, setGiftCode] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
@@ -63,7 +63,7 @@ const WalletPage = () => {
   };
 
   const getRoleIcon = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'admin': return <Shield className="w-5 h-5 text-red-500" />;
       case 'vip': return <Crown className="w-5 h-5 text-yellow-500" />;
       default: return <User className="w-5 h-5 text-blue-500" />;
@@ -71,7 +71,7 @@ const WalletPage = () => {
   };
 
   const getRoleBadge = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'admin': return <Badge className="bg-red-500">管理員</Badge>;
       case 'vip': return <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500">VIP會員</Badge>;
       default: return <Badge className="bg-blue-500">普通會員</Badge>;
@@ -89,7 +89,7 @@ const WalletPage = () => {
     }
   };
 
-  const userTransactions = transactions.filter(t => t.userId === user?.id).slice(0, 10);
+  const userTransactions = transactions.filter((t: any) => t.userId === user?.id).slice(0, 10);
 
   if (!user) {
     return <div>請先登入</div>;
@@ -119,7 +119,7 @@ const WalletPage = () => {
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="text-4xl font-bold text-green-600 mb-2">
-                {user.points.toLocaleString()}
+                {(profile?.points || 0).toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground">可用積分</p>
             </div>
@@ -127,13 +127,13 @@ const WalletPage = () => {
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="p-3 bg-white rounded-lg">
                 <div className="text-lg font-semibold text-blue-600">
-                  {user.checkInDays}
+                  {profile?.check_in_streak || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">簽到天數</p>
               </div>
               <div className="p-3 bg-white rounded-lg">
                 <div className="text-lg font-semibold text-purple-600">
-                  {user.vipLevel}
+                  {profile?.vip_level || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">VIP等級</p>
               </div>
@@ -153,7 +153,7 @@ const WalletPage = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">用戶名稱</span>
-                <span className="font-medium">{user.username}</span>
+                <span className="font-medium">{profile?.username || profile?.display_name || '用戶'}</span>
               </div>
               
               <div className="flex justify-between items-center">
@@ -163,19 +163,17 @@ const WalletPage = () => {
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">加入日期</span>
-                <span className="font-medium">{user.joinDate}</span>
+                <span className="font-medium">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '未知'}</span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">會員狀態</span>
-                <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
-                  {user.status === 'active' ? '正常' : '停用'}
-                </Badge>
+                <Badge variant="default">正常</Badge>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">累計消費</span>
-                <span className="font-medium">{user.totalSpent} 積分</span>
+                <span className="font-medium">0 積分</span>
               </div>
             </div>
           </CardContent>
@@ -235,7 +233,7 @@ const WalletPage = () => {
         <CardContent>
           {userTransactions.length > 0 ? (
             <div className="space-y-3">
-              {userTransactions.map((transaction) => (
+              {userTransactions.map((transaction: any) => (
                 <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     {getTransactionIcon(transaction.type)}

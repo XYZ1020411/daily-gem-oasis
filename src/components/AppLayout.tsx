@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,7 +14,7 @@ interface AppLayoutProps {
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChange }) => {
-  const { user, logout } = useUser();
+  const { user, profile, signOut } = useUser();
   const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -23,7 +24,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
     { id: 'wallet', label: '我的錢包', icon: Wallet },
     { id: 'shop', label: '積分商城', icon: ShoppingBag },
     { id: 'info', label: '資訊服務', icon: Info },
-    ...(user?.role === 'admin' ? [{ id: 'admin', label: '管理後台', icon: Settings }] : [])
+    ...(profile?.role === 'admin' ? [{ id: 'admin', label: '管理後台', icon: Settings }] : [])
   ];
 
   return (
@@ -57,13 +58,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-2 text-sm">
               <span className="text-muted-foreground">歡迎回來,</span>
-              <span className="font-medium">{user?.username}</span>
+              <span className="font-medium">{profile?.username || profile?.display_name || '用戶'}</span>
               <span className={`px-2 py-1 rounded text-xs ${
-                user?.role === 'admin' ? 'bg-red-100 text-red-700' :
-                user?.role === 'vip' ? 'bg-yellow-100 text-yellow-700' :
+                profile?.role === 'admin' ? 'bg-red-100 text-red-700' :
+                profile?.role === 'vip' ? 'bg-yellow-100 text-yellow-700' :
                 'bg-blue-100 text-blue-700'
               }`}>
-                {user?.role === 'admin' ? '管理員' : user?.role === 'vip' ? 'VIP會員' : '普通會員'}
+                {profile?.role === 'admin' ? '管理員' : profile?.role === 'vip' ? 'VIP會員' : '普通會員'}
               </span>
             </div>
 
@@ -71,7 +72,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
-            <Button variant="ghost" size="icon" onClick={logout} className="text-red-600">
+            <Button variant="ghost" size="icon" onClick={signOut} className="text-red-600">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
@@ -111,11 +112,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
               <Card className="p-4">
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                    {user?.username.charAt(0).toUpperCase()}
+                    {(profile?.username || profile?.display_name || 'U').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-medium">{user?.username}</p>
-                    <p className="text-sm text-muted-foreground">積分: {user?.points?.toLocaleString()}</p>
+                    <p className="font-medium">{profile?.username || profile?.display_name || '用戶'}</p>
+                    <p className="text-sm text-muted-foreground">積分: {profile?.points?.toLocaleString() || 0}</p>
                   </div>
                 </div>
               </Card>

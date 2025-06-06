@@ -24,13 +24,13 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
-  const { user, checkIn, updatePoints } = useUser();
+  const { user, profile, checkIn, updatePoints } = useUser();
   const { toast } = useToast();
 
   const handleCheckIn = () => {
     const success = checkIn();
     if (success) {
-      const reward = user?.role === 'vip' ? 20 : 10;
+      const reward = profile?.role === 'vip' ? 20 : 10;
       toast({
         title: "簽到成功！",
         description: `獲得 ${reward} 積分獎勵`,
@@ -45,7 +45,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
   };
 
   const getRoleDisplay = () => {
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'admin':
         return { 
           label: '系統管理員', 
@@ -55,7 +55,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
         };
       case 'vip':
         return { 
-          label: `VIP ${user.vipLevel} 級會員`, 
+          label: `VIP ${profile.vip_level || 1} 級會員`, 
           color: 'bg-yellow-500', 
           icon: <Star className="w-4 h-4" />,
           gradient: 'from-yellow-400 to-orange-500'
@@ -71,7 +71,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
   };
 
   const roleInfo = getRoleDisplay();
-  const canCheckIn = user?.lastCheckIn !== new Date().toISOString().split('T')[0];
+  const canCheckIn = profile?.last_check_in !== new Date().toISOString().split('T')[0];
 
   return (
     <div className="space-y-6">
@@ -85,7 +85,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold">
-                  歡迎回來，{user?.username}！
+                  歡迎回來，{profile?.username || profile?.display_name || '用戶'}！
                 </CardTitle>
                 <CardDescription className="text-white/80 text-lg">
                   {roleInfo.label}
@@ -93,7 +93,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold">{user?.points}</div>
+              <div className="text-3xl font-bold">{profile?.points || 0}</div>
               <div className="text-white/80">積分餘額</div>
             </div>
           </div>
@@ -113,7 +113,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
           <CardContent>
             <div className="space-y-3">
               <div className="text-2xl font-bold text-green-600">
-                {user?.checkInDays || 0} 天
+                {profile?.check_in_streak || 0} 天
               </div>
               <p className="text-sm text-muted-foreground">連續簽到天數</p>
               <Button 
@@ -145,7 +145,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
           <CardContent>
             <div className="space-y-3">
               <div className="text-2xl font-bold text-yellow-600">
-                {user?.points || 0}
+                {profile?.points || 0}
               </div>
               <p className="text-sm text-muted-foreground">當前積分</p>
               <Button 

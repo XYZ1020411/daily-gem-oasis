@@ -3,77 +3,38 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { useUser } from '@/contexts/UserContext';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { 
-  Users,
-  Plus,
+  Gamepad2, 
+  Users, 
+  Clock, 
+  Trophy,
   Play,
-  Crown,
-  LogOut,
-  RefreshCw,
-  Database,
-  Wifi
+  Plus,
+  Share2,
+  Zap
 } from 'lucide-react';
 
-interface GameSession {
-  id: string;
-  session_name: string;
-  game_type: string;
-  host_user_id: string;
-  max_players: number;
-  is_active: boolean;
-  session_data: any;
-  created_at: string;
-  participant_count?: number;
-}
-
-interface UserGameData {
-  id: string;
-  game_type: string;
-  game_data: any;
-  last_played: string;
-}
-
 const GamesPage = () => {
-  const { user, updatePoints } = useUser();
+  const { user, profile, updatePoints } = useUser();
   const { toast } = useToast();
-  
-  const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
-  const [userGameData, setUserGameData] = useState<UserGameData[]>([]);
-  const [newSessionName, setNewSessionName] = useState('');
-  const [isOnline, setIsOnline] = useState(true);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [gameSessions, setGameSessions] = useState<any[]>([]);
+  const [userGameData, setUserGameData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 載入用戶遊戲數據
-  const loadUserGameData = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_game_data')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('last_played', { ascending: false });
-
-      if (error) throw error;
-      setUserGameData(data || []);
-    } catch (error) {
-      console.error('載入用戶遊戲數據失敗:', error);
-      toast({
-        title: "載入失敗",
-        description: "無法載入您的遊戲數據",
-        variant: "destructive",
-      });
+  // 載入遊戲數據
+  useEffect(() => {
+    if (user) {
+      loadGameData();
     }
-  };
+  }, [user]);
 
-  // 載入遊戲會話
-  const loadGameSessions = async () => {
+  const loadGameData = async () => {
     try {
-      const { data, error } = await supabase
+      // 載入活躍的遊戲會話
+      const { data: sessions, error: sessionsError } = await supabase
         .from('game_sessions')
         .select(`
           *,
@@ -82,66 +43,60 @@ const GamesPage = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      const sessionsWithCount = data?.map(session => ({
-        ...session,
-        participant_count: session.game_session_participants?.[0]?.count || 0
-      })) || [];
-      
-      setGameSessions(sessionsWithCount);
+      if (sessionsError) throw sessionsError;
+
+      // 載入用戶遊戲數據
+      const { data: gameData, error: gameDataError } = await supabase
+        .from('user_game_data')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('last_played', { ascending: false });
+
+      if (gameDataError) throw gameDataError;
+
+      setGameSessions(sessions || []);
+      setUserGameData(gameData || []);
     } catch (error) {
-      console.error('載入遊戲會話失敗:', error);
-      toast({
-        title: "載入失敗",
-        description: "無法載入遊戲會話",
-        variant: "destructive",
-      });
+      console.error('載入遊戲數據失敗:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // 創建新遊戲會話
-  const createGameSession = async (gameType: string) => {
-    if (!user || !newSessionName.trim()) {
-      toast({
-        title: "請輸入會話名稱",
-        description: "創建遊戲會話需要名稱",
-        variant: "destructive",
-      });
-      return;
-    }
+  const createGameSession = async (gameType: string, sessionName: string) => {
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('game_sessions')
         .insert({
-          session_name: newSessionName.trim(),
+          session_name: sessionName,
           game_type: gameType,
           host_user_id: user.id,
-          session_data: { created_by: user.username || user.id }
+          max_players: 4,
+          session_data: {}
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // 自動加入自己創建的會話
+      // 自動加入會話
       await joinGameSession(data.id);
       
-      setNewSessionName('');
       toast({
-        title: "會話已創建",
-        description: `成功創建遊戲會話：${newSessionName}`,
+        title: "遊戲會話已創建",
+        description: `${sessionName} 已成功創建`
       });
-      
-      updatePoints(50, '創建遊戲會話');
-      await loadGameSessions();
+
+      loadGameData();
     } catch (error) {
       console.error('創建遊戲會話失敗:', error);
       toast({
         title: "創建失敗",
         description: "無法創建遊戲會話",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -155,150 +110,40 @@ const GamesPage = () => {
         .from('game_session_participants')
         .insert({
           session_id: sessionId,
-          user_id: user.id,
-          is_online: true
+          user_id: user.id
         });
 
-      if (error && error.code !== '23505') { // 忽略重複加入錯誤
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "加入成功",
-        description: "已加入遊戲會話",
+        description: "已成功加入遊戲會話"
       });
-      
-      updatePoints(20, '加入遊戲會話');
-      await loadGameSessions();
+
+      loadGameData();
     } catch (error) {
       console.error('加入遊戲會話失敗:', error);
       toast({
         title: "加入失敗",
         description: "無法加入遊戲會話",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
-  // 保存遊戲數據
-  const saveGameData = async (gameType: string, gameData: any) => {
-    if (!user) return;
+  const gameTypes = [
+    { id: 'memory', name: '記憶遊戲', icon: '🧠', description: '測試你的記憶力' },
+    { id: 'puzzle', name: '拼圖遊戲', icon: '🧩', description: '挑戰邏輯思維' },
+    { id: 'trivia', name: '問答遊戲', icon: '❓', description: '知識問答挑戰' },
+    { id: 'action', name: '動作遊戲', icon: '⚡', description: '反應速度測試' }
+  ];
 
-    try {
-      const { error } = await supabase
-        .from('user_game_data')
-        .upsert({
-          user_id: user.id,
-          game_type: gameType,
-          game_data: gameData,
-          last_played: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,game_type'
-        });
-
-      if (error) throw error;
-
-      await loadUserGameData();
-      setLastSync(new Date());
-      
-      toast({
-        title: "數據已保存",
-        description: "遊戲數據已同步到雲端",
-      });
-    } catch (error) {
-      console.error('保存遊戲數據失敗:', error);
-      toast({
-        title: "保存失敗",
-        description: "無法保存遊戲數據到雲端",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // 設置即時監聽
-  useEffect(() => {
-    if (!user) return;
-
-    // 監聽遊戲會話變化
-    const sessionChannel = supabase
-      .channel('game-sessions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_sessions'
-        },
-        () => {
-          loadGameSessions();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_session_participants'
-        },
-        () => {
-          loadGameSessions();
-        }
-      )
-      .subscribe();
-
-    // 監聽用戶遊戲數據變化
-    const userDataChannel = supabase
-      .channel('user-game-data-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_game_data',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          loadUserGameData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(sessionChannel);
-      supabase.removeChannel(userDataChannel);
-    };
-  }, [user]);
-
-  // 初始化加載數據
-  useEffect(() => {
-    if (user) {
-      loadGameSessions();
-      loadUserGameData();
-    }
-  }, [user]);
-
-  // 更新在線狀態
-  useEffect(() => {
-    const updateOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-    };
-
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, []);
-
-  if (!user) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <Crown className="w-16 h-16 mx-auto text-muted-foreground" />
-          <h2 className="text-2xl font-bold">需要登入</h2>
-          <p className="text-muted-foreground">請先登入以使用雲端遊戲功能</p>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">載入遊戲數據中...</p>
         </div>
       </div>
     );
@@ -306,158 +151,169 @@ const GamesPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* 頁面標題和狀態 */}
+      {/* 頁面標題 */}
       <div className="text-center space-y-2">
-        <div className="flex items-center justify-center space-x-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            雲端遊戲中心
-          </h1>
-          <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-sm text-muted-foreground">
-              {isOnline ? '在線' : '離線'}
-            </span>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          遊戲娛樂中心
+        </h1>
         <p className="text-muted-foreground">
-          享受雲端存儲和多人即時同步的遊戲體驗
+          歡迎 {profile?.username || profile?.display_name || '玩家'} 來到遊戲世界！
         </p>
-        {lastSync && (
-          <p className="text-xs text-muted-foreground">
-            最後同步: {lastSync.toLocaleTimeString()}
-          </p>
-        )}
       </div>
 
-      {/* 創建遊戲會話 */}
+      {/* 用戶遊戲統計 */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Trophy className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
+            <div className="text-2xl font-bold">{profile?.points || 0}</div>
+            <p className="text-sm text-muted-foreground">總積分</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Gamepad2 className="w-8 h-8 mx-auto text-blue-500 mb-2" />
+            <div className="text-2xl font-bold">{userGameData.length}</div>
+            <p className="text-sm text-muted-foreground">已玩遊戲</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Users className="w-8 h-8 mx-auto text-green-500 mb-2" />
+            <div className="text-2xl font-bold">{gameSessions.length}</div>
+            <p className="text-sm text-muted-foreground">活躍會話</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 快速開始遊戲 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Plus className="w-6 h-6" />
-            <span>創建遊戲會話</span>
+            <Zap className="w-6 h-6 text-orange-500" />
+            <span>快速開始</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex space-x-2">
-            <Input
-              placeholder="輸入會話名稱..."
-              value={newSessionName}
-              onChange={(e) => setNewSessionName(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              onClick={() => createGameSession('multiplayer')}
-              disabled={!newSessionName.trim()}
-            >
-              創建會話
-            </Button>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {gameTypes.map((game) => (
+              <Button
+                key={game.id}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center space-y-2"
+                onClick={() => createGameSession(game.id, `${game.name} - ${new Date().toLocaleTimeString()}`)}
+              >
+                <span className="text-2xl">{game.icon}</span>
+                <span className="font-medium">{game.name}</span>
+                <span className="text-xs text-muted-foreground text-center">{game.description}</span>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
       {/* 活躍遊戲會話 */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-6 h-6" />
-            <span>活躍遊戲會話</span>
-            <Badge variant="secondary">{gameSessions.length}</Badge>
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={loadGameSessions}>
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {gameSessions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>目前沒有活躍的遊戲會話</p>
-              </div>
-            ) : (
-              gameSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold">{session.session_name}</h3>
-                      <Badge className="text-xs">{session.game_type}</Badge>
-                      {session.host_user_id === user.id && (
-                        <Crown className="w-4 h-4 text-yellow-500" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      參與者: {session.participant_count || 0}/{session.max_players}
-                    </p>
-                  </div>
-                  <Button onClick={() => joinGameSession(session.id)}>
-                    <Play className="w-4 h-4 mr-2" />
-                    加入
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 我的遊戲數據 */}
-      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Database className="w-6 h-6" />
-            <span>我的遊戲數據</span>
-            <Badge variant="secondary">{userGameData.length}</Badge>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <Users className="w-6 h-6 text-blue-500" />
+              <span>活躍遊戲會話</span>
+            </CardTitle>
+            <Button 
+              size="sm"
+              onClick={() => createGameSession('custom', `自定義會話 - ${new Date().toLocaleTimeString()}`)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              創建會話
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {userGameData.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>還沒有遊戲數據</p>
-              </div>
-            ) : (
-              userGameData.map((data) => (
-                <div key={data.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">{data.game_type}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      最後遊玩: {new Date(data.last_played).toLocaleString()}
-                    </p>
+          {gameSessions.length > 0 ? (
+            <div className="space-y-4">
+              {gameSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{session.session_name}</h4>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                      <span className="flex items-center space-x-1">
+                        <Gamepad2 className="w-4 h-4" />
+                        <span>{session.game_type}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Users className="w-4 h-4" />
+                        <span>{session.game_session_participants?.[0]?.count || 0}/{session.max_players}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{new Date(session.created_at).toLocaleTimeString()}</span>
+                      </span>
+                    </div>
                   </div>
                   <div className="flex space-x-2">
                     <Button 
-                      variant="outline" 
                       size="sm"
-                      onClick={() => saveGameData(data.game_type, { ...data.game_data, updated: Date.now() })}
+                      onClick={() => joinGameSession(session.id)}
                     >
-                      <Wifi className="w-4 h-4 mr-2" />
-                      同步
+                      <Play className="w-4 h-4 mr-2" />
+                      加入
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Share2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-
-          {/* 快速測試按鈕 */}
-          <div className="mt-6 pt-4 border-t">
-            <h4 className="font-semibold mb-3">測試雲端存儲</h4>
-            <div className="flex space-x-2">
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Gamepad2 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-muted-foreground">目前沒有活躍的遊戲會話</p>
               <Button 
-                variant="outline" 
-                onClick={() => saveGameData('test_game', { score: Math.floor(Math.random() * 1000), timestamp: Date.now() })}
+                className="mt-4"
+                onClick={() => createGameSession('memory', `記憶遊戲 - ${new Date().toLocaleTimeString()}`)}
               >
-                保存測試數據
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={loadUserGameData}
-              >
-                重新載入
+                開始第一個遊戲
               </Button>
             </div>
-          </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 我的遊戲記錄 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            <span>我的遊戲記錄</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {userGameData.length > 0 ? (
+            <div className="space-y-3">
+              {userGameData.slice(0, 5).map((gameData) => (
+                <div key={gameData.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{gameData.game_type}</p>
+                    <p className="text-sm text-muted-foreground">
+                      最後遊玩: {new Date(gameData.last_played).toLocaleString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    {JSON.stringify(gameData.game_data).length > 50 ? '有數據' : '無數據'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-muted-foreground">還沒有遊戲記錄</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -13,6 +13,8 @@ interface UserProfile {
   vip_level?: number;
   created_at?: string;
   updated_at?: string;
+  last_check_in?: string;
+  check_in_streak?: number;
 }
 
 interface UserContextType {
@@ -24,6 +26,27 @@ interface UserContextType {
   updatePoints: (amount: number, reason: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  checkIn: () => boolean;
+  
+  // Mock data for components that were using static data
+  users: any[];
+  products: any[];
+  exchanges: any[];
+  announcements: any[];
+  transactions: any[];
+  
+  // Mock functions for admin features
+  updateUserById: (id: string, data: any) => void;
+  deleteUser: (id: string) => void;
+  addProduct: (product: any) => void;
+  updateProduct: (id: string, product: any) => void;
+  deleteProduct: (id: string) => void;
+  updateExchange: (id: string, data: any) => void;
+  addAnnouncement: (announcement: any) => void;
+  updateAnnouncement: (id: string, announcement: any) => void;
+  deleteAnnouncement: (id: string) => void;
+  addExchange: (exchange: any) => void;
+  redeemGiftCode: (code: string) => boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -45,6 +68,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Mock data - these would normally come from Supabase
+  const [users] = useState([]);
+  const [products] = useState([]);
+  const [exchanges] = useState([]);
+  const [announcements] = useState([]);
+  const [transactions] = useState([]);
 
   // 載入用戶資料
   const loadUserProfile = async (userId: string) => {
@@ -89,6 +119,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (user) {
       await loadUserProfile(user.id);
     }
+  };
+
+  // 簽到功能
+  const checkIn = () => {
+    if (!profile) return false;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (profile.last_check_in === today) {
+      return false; // 今天已經簽到過了
+    }
+    
+    // 這裡應該調用 Supabase 更新簽到狀態
+    // 暫時返回 true
+    return true;
   };
 
   // 更新積分
@@ -136,6 +180,53 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('登出失敗:', error);
     }
+  };
+
+  // Mock admin functions
+  const updateUserById = (id: string, data: any) => {
+    console.log('updateUserById:', id, data);
+  };
+
+  const deleteUser = (id: string) => {
+    console.log('deleteUser:', id);
+  };
+
+  const addProduct = (product: any) => {
+    console.log('addProduct:', product);
+  };
+
+  const updateProduct = (id: string, product: any) => {
+    console.log('updateProduct:', id, product);
+  };
+
+  const deleteProduct = (id: string) => {
+    console.log('deleteProduct:', id);
+  };
+
+  const updateExchange = (id: string, data: any) => {
+    console.log('updateExchange:', id, data);
+  };
+
+  const addAnnouncement = (announcement: any) => {
+    console.log('addAnnouncement:', announcement);
+  };
+
+  const updateAnnouncement = (id: string, announcement: any) => {
+    console.log('updateAnnouncement:', id, announcement);
+  };
+
+  const deleteAnnouncement = (id: string) => {
+    console.log('deleteAnnouncement:', id);
+  };
+
+  const addExchange = (exchange: any) => {
+    console.log('addExchange:', exchange);
+  };
+
+  const redeemGiftCode = (code: string) => {
+    console.log('redeemGiftCode:', code);
+    // Mock implementation
+    return ['WELCOME100', 'VIP500', 'LUCKY1000'].includes(code);
   };
 
   // 設置認證狀態監聽
@@ -193,7 +284,24 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isLoading,
     updatePoints,
     refreshProfile,
-    signOut
+    signOut,
+    checkIn,
+    users,
+    products,
+    exchanges,
+    announcements,
+    transactions,
+    updateUserById,
+    deleteUser,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    updateExchange,
+    addAnnouncement,
+    updateAnnouncement,
+    deleteAnnouncement,
+    addExchange,
+    redeemGiftCode
   };
 
   return (
