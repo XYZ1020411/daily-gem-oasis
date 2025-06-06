@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +49,14 @@ const AdminPage = () => {
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  
+  // 禮品碼管理狀態
+  const [giftCodes, setGiftCodes] = useState([
+    { id: '1', code: 'WELCOME2024', points: 100, isActive: true, usedBy: [], createdAt: '2024-01-01', expiresAt: '2024-12-31' },
+    { id: '2', code: 'BONUS500', points: 500, isActive: true, usedBy: ['user1'], createdAt: '2024-01-15', expiresAt: '2024-06-30' },
+    { id: '3', code: 'EXPIRED123', points: 50, isActive: false, usedBy: [], createdAt: '2024-01-01', expiresAt: '2024-01-31' }
+  ]);
+  const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
 
   if (!user || user.role !== 'admin') {
     return (
@@ -61,11 +68,56 @@ const AdminPage = () => {
     );
   }
 
+  const handleAddGiftCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    const newGiftCode = {
+      id: Date.now().toString(),
+      code: formData.get('code') as string,
+      points: Number(formData.get('points')),
+      isActive: true,
+      usedBy: [],
+      createdAt: new Date().toISOString().split('T')[0],
+      expiresAt: formData.get('expiresAt') as string
+    };
+    
+    setGiftCodes(prev => [...prev, newGiftCode]);
+    setIsAddingGiftCode(false);
+    toast({
+      title: "新增成功",
+      description: "禮品碼已新增"
+    });
+  };
+
+  const handleToggleGiftCode = (codeId: string) => {
+    setGiftCodes(prev => 
+      prev.map(code => 
+        code.id === codeId 
+          ? { ...code, isActive: !code.isActive }
+          : code
+      )
+    );
+    toast({
+      title: "更新成功",
+      description: "禮品碼狀態已更新"
+    });
+  };
+
+  const handleDeleteGiftCode = (codeId: string) => {
+    setGiftCodes(prev => prev.filter(code => code.id !== codeId));
+    toast({
+      title: "刪除成功",
+      description: "禮品碼已刪除"
+    });
+  };
+
   const tabs = [
     { id: 'users', label: '用戶管理', icon: Users },
     { id: 'products', label: '商品管理', icon: Package },
     { id: 'exchanges', label: '兌換管理', icon: Gift },
     { id: 'announcements', label: '公告管理', icon: MessageSquare },
+    { id: 'giftcodes', label: '禮品碼管理', icon: QrCode },
     { id: 'stats', label: '數據統計', icon: BarChart3 }
   ];
 
@@ -473,6 +525,112 @@ const AdminPage = () => {
     </div>
   );
 
+  const renderGiftCodesTab = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">禮品碼管理</h3>
+        <Button onClick={() => setIsAddingGiftCode(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          新增禮品碼
+        </Button>
+      </div>
+
+      {isAddingGiftCode && (
+        <Card>
+          <CardHeader>
+            <CardTitle>新增禮品碼</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddGiftCode} className="space-y-4">
+              <div>
+                <Label htmlFor="code">禮品碼</Label>
+                <Input 
+                  id="code" 
+                  name="code" 
+                  placeholder="例如: WELCOME2024" 
+                  required 
+                  pattern="[A-Z0-9]+"
+                  title="只能包含大寫字母和數字"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="points">積分價值</Label>
+                  <Input id="points" name="points" type="number" min="1" required />
+                </div>
+                <div>
+                  <Label htmlFor="expiresAt">到期日期</Label>
+                  <Input id="expiresAt" name="expiresAt" type="date" required />
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit">新增</Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddingGiftCode(false)}>
+                  取消
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="space-y-3">
+        {giftCodes.map((giftCode) => (
+          <Card key={giftCode.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <code className="bg-gray-100 px-2 py-1 rounded font-mono text-lg">
+                      {giftCode.code}
+                    </code>
+                    <Badge className={giftCode.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {giftCode.isActive ? '啟用' : '停用'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">積分價值:</span> {giftCode.points}
+                    </div>
+                    <div>
+                      <span className="font-medium">使用次數:</span> {giftCode.usedBy.length}
+                    </div>
+                    <div>
+                      <span className="font-medium">創建日期:</span> {giftCode.createdAt}
+                    </div>
+                    <div>
+                      <span className="font-medium">到期日期:</span> {giftCode.expiresAt}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant={giftCode.isActive ? "outline" : "default"}
+                    onClick={() => handleToggleGiftCode(giftCode.id)}
+                  >
+                    {giftCode.isActive ? '停用' : '啟用'}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm('確定要刪除此禮品碼嗎？')) {
+                        handleDeleteGiftCode(giftCode.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderStatsTab = () => {
     const totalUsers = users.length;
     const vipUsers = users.filter(u => u.role === 'vip').length;
@@ -587,6 +745,7 @@ const AdminPage = () => {
         {activeTab === 'products' && renderProductsTab()}
         {activeTab === 'exchanges' && renderExchangesTab()}
         {activeTab === 'announcements' && renderAnnouncementsTab()}
+        {activeTab === 'giftcodes' && renderGiftCodesTab()}
         {activeTab === 'stats' && renderStatsTab()}
       </div>
     </div>
