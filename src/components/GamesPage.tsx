@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 
 const GamesPage = () => {
-  const { user, updateUserPoints } = useUser();
+  const { user, updatePoints } = useUser();
   const { toast } = useToast();
   
   const [showCountryGame, setShowCountryGame] = useState(false);
@@ -45,7 +44,7 @@ const GamesPage = () => {
   const [maxPieces] = useState(9);
 
   const handleReward = (amount: number, reason: string) => {
-    updateUserPoints(amount);
+    updatePoints(amount, reason);
     toast({
       title: "獲得獎勵！",
       description: `${reason}：+${amount} 積分`
