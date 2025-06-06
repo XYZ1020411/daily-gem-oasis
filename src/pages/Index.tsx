@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
-import LoginPage from '@/components/LoginPage';
+import AuthPage from '@/components/AuthPage';
 import AppLayout from '@/components/AppLayout';
 import HomePage from '@/components/HomePage';
 import GamesPage from '@/components/GamesPage';
@@ -11,11 +11,24 @@ import AdminPage from '@/components/AdminPage';
 import InfoPage from '@/components/InfoPage';
 
 const Index = () => {
-  const { isLoggedIn } = useUser();
+  const { isLoggedIn, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState('home');
 
+  // 顯示載入狀態
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-white text-lg">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果未登入，顯示認證頁面
   if (!isLoggedIn) {
-    return <LoginPage />;
+    return <AuthPage />;
   }
 
   const renderPage = () => {

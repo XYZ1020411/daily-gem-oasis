@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
       customer_support: {
         Row: {
           admin_response: string | null
@@ -39,6 +69,74 @@ export type Database = {
           message?: string
           resolved?: boolean | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      game_session_participants: {
+        Row: {
+          id: string
+          is_online: boolean | null
+          joined_at: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_online?: boolean | null
+          joined_at?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_online?: boolean | null
+          joined_at?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_sessions: {
+        Row: {
+          created_at: string | null
+          game_type: string
+          host_user_id: string
+          id: string
+          is_active: boolean | null
+          max_players: number | null
+          session_data: Json
+          session_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_type: string
+          host_user_id: string
+          id?: string
+          is_active?: boolean | null
+          max_players?: number | null
+          session_data?: Json
+          session_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_type?: string
+          host_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          max_players?: number | null
+          session_data?: Json
+          session_name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -144,6 +242,36 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: Json | null
+        }
+        Relationships: []
+      }
+      user_game_data: {
+        Row: {
+          created_at: string | null
+          game_data: Json
+          game_type: string
+          id: string
+          last_played: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          game_data?: Json
+          game_type: string
+          id?: string
+          last_played?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          game_data?: Json
+          game_type?: string
+          id?: string
+          last_played?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
