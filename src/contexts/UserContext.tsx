@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -96,6 +95,7 @@ interface UserContextType {
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'createdAt'>) => void;
   updateAnnouncement: (announcementId: string, updates: Partial<Announcement>) => void;
   deleteAnnouncement: (announcementId: string) => void;
+  createRealAccounts: () => Promise<{accounts: Array<{email: string, password: string, role: string}>}>;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -220,6 +220,86 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (error) {
       throw error;
     }
+  };
+
+  // 創建真實帳號的函數
+  const createRealAccounts = async () => {
+    const accounts = [
+      {
+        email: 'user001@example.com',
+        password: 'user001pass',
+        username: '001',
+        role: 'user',
+        points: 1500
+      },
+      {
+        email: 'vip8888@example.com', 
+        password: 'vip8888pass',
+        username: 'vip8888',
+        role: 'vip',
+        points: 800000,
+        vip_level: 5
+      },
+      {
+        email: 'admin002@example.com',
+        password: 'admin002pass', 
+        username: '002',
+        role: 'admin',
+        points: 1000000
+      }
+    ];
+
+    const results = [];
+    
+    for (const account of accounts) {
+      try {
+        // 創建帳號
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: account.email,
+          password: account.password,
+          options: {
+            data: {
+              username: account.username,
+              display_name: account.username,
+            },
+          },
+        });
+
+        if (authError) {
+          console.error(`Error creating account ${account.email}:`, authError);
+          continue;
+        }
+
+        // 如果帳號創建成功，設置用戶資料
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              username: account.username,
+              display_name: account.username,
+              role: account.role,
+              points: account.points,
+              vip_level: account.vip_level || 0,
+            })
+            .eq('id', authData.user.id);
+
+          if (profileError) {
+            console.error(`Error updating profile for ${account.email}:`, profileError);
+          }
+        }
+
+        results.push({
+          email: account.email,
+          password: account.password,
+          role: account.role
+        });
+        
+      } catch (error) {
+        console.error(`Error processing account ${account.email}:`, error);
+      }
+    }
+
+    return { accounts: results };
   };
 
   const signOut = async () => {
@@ -497,6 +577,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     addAnnouncement,
     updateAnnouncement,
     deleteAnnouncement,
+    createRealAccounts,
   };
 
   return (

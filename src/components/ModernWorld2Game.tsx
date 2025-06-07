@@ -20,16 +20,20 @@ import {
   Crown,
   Flag,
   Search,
-  Loader2
+  Loader2,
+  Save,
+  AlertCircle
 } from 'lucide-react';
 import { useCountries, Country } from '@/hooks/useCountries';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/contexts/UserContext';
 
 const ModernWorld2Game: React.FC = () => {
   const { countries, loading: countriesLoading, error: countriesError } = useCountries();
   const { session, createSession, updateGameState, recordAction } = useGameSession();
   const { toast } = useToast();
+  const { user, isLoggedIn } = useUser();
   
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -43,6 +47,48 @@ const ModernWorld2Game: React.FC = () => {
     diplomacy: 70,
     stability: 80
   });
+  const [saving, setSaving] = useState(false);
+
+  // 自動保存遊戲狀態
+  const autoSave = async () => {
+    if (!session || !selectedCountry) return;
+    
+    setSaving(true);
+    try {
+      await updateGameState({
+        countryName: selectedCountry.name,
+        stats: gameStats,
+        lastSaved: new Date().toISOString(),
+        gameVersion: '2.0'
+      });
+      
+      toast({
+        title: "遊戲已保存",
+        description: "您的遊戲進度已自動保存到雲端",
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('Auto save failed:', error);
+      toast({
+        title: "保存失敗",
+        description: "無法保存遊戲進度，請檢查網路連接",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 每當遊戲狀態改變時自動保存
+  useEffect(() => {
+    if (gameStarted && session) {
+      const saveTimer = setTimeout(() => {
+        autoSave();
+      }, 3000); // 3秒後保存
+
+      return () => clearTimeout(saveTimer);
+    }
+  }, [gameStats, gameStarted, session]);
 
   // 過濾國家
   const filteredCountries = countries.filter(country => {
@@ -64,13 +110,42 @@ const ModernWorld2Game: React.FC = () => {
     { name: '基建部', icon: Building, description: '建設國家基礎設施' }
   ];
 
+  // 檢查是否登入
+  if (!isLoggedIn) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <AlertCircle className="w-16 h-16 mx-auto text-yellow-500" />
+            <h3 className="text-xl font-semibold">需要登入才能遊玩</h3>
+            <p className="text-muted-foreground">
+              《現代世界2》需要登入帳號才能保存遊戲進度和使用網路同步功能
+            </p>
+            <Button onClick={() => window.location.href = '/auth'}>
+              前往登入
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const handleStartGame = async () => {
-    if (!selectedCountry) return;
+    if (!selectedCountry) {
+      toast({
+        title: "請選擇國家",
+        description: "請先選擇一個國家才能開始遊戲",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const initialGameState = {
       countryName: selectedCountry.name,
+      countryId: selectedCountry.id,
       stats: gameStats,
-      startTime: new Date().toISOString()
+      startTime: new Date().toISOString(),
+      gameVersion: '2.0'
     };
 
     const newSession = await createSession(selectedCountry.id, initialGameState);
@@ -78,7 +153,13 @@ const ModernWorld2Game: React.FC = () => {
       setGameStarted(true);
       toast({
         title: "遊戲開始",
-        description: `歡迎成為${selectedCountry.name}的總統！`
+        description: `歡迎成為${selectedCountry.name}的總統！遊戲進度將自動保存到雲端。`
+      });
+    } else {
+      toast({
+        title: "啟動失敗",
+        description: "無法創建遊戲會話，請重試",
+        variant: "destructive"
       });
     }
   };
@@ -87,21 +168,23 @@ const ModernWorld2Game: React.FC = () => {
     const newStats = { ...gameStats, ...statChanges };
     setGameStats(newStats);
     
-    await updateGameState({
-      ...session?.game_state,
-      stats: newStats,
-      lastAction: {
-        type: actionType,
-        name: actionName,
-        timestamp: new Date().toISOString()
-      }
-    });
-    
-    await recordAction(actionType, {
-      actionName,
-      statChanges,
-      newStats
-    });
+    if (session) {
+      await updateGameState({
+        ...session.game_state,
+        stats: newStats,
+        lastAction: {
+          type: actionType,
+          name: actionName,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      await recordAction(actionType, {
+        actionName,
+        statChanges,
+        newStats
+      });
+    }
 
     toast({
       title: actionName,
@@ -111,10 +194,20 @@ const ModernWorld2Game: React.FC = () => {
 
   // 載入保存的遊戲狀態
   useEffect(() => {
-    if (session?.game_state?.stats) {
-      setGameStats(session.game_state.stats);
+    if (session?.game_state) {
+      if (session.game_state.stats) {
+        setGameStats(session.game_state.stats);
+      }
+      if (session.game_state.countryName && !selectedCountry) {
+        // 嘗試從國家名稱找到對應的國家
+        const country = countries.find(c => c.name === session.game_state.countryName);
+        if (country) {
+          setSelectedCountry(country);
+          setGameStarted(true);
+        }
+      }
     }
-  }, [session]);
+  }, [session, countries]);
 
   if (countriesLoading) {
     return (
@@ -235,9 +328,9 @@ const ModernWorld2Game: React.FC = () => {
                     <div>GDP: ${selectedCountry.gdp}兆</div>
                   </div>
                 </div>
-                <Button onClick={handleStartGame} size="lg">
+                <Button onClick={handleStartGame} size="lg" className="w-full">
                   <Flag className="w-4 h-4 mr-2" />
-                  開始統治 {selectedCountry.name}
+                  確認並開始統治 {selectedCountry.name}
                 </Button>
               </div>
             )}
@@ -252,12 +345,24 @@ const ModernWorld2Game: React.FC = () => {
       {/* 國家狀態面板 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Crown className="w-6 h-6 text-yellow-500" />
-            <span>{selectedCountry?.name}總統府</span>
-            <Badge variant="outline" className="text-xs">
-              🌐 已同步
-            </Badge>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Crown className="w-6 h-6 text-yellow-500" />
+              <span>{selectedCountry?.name}總統府</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {saving ? (
+                <Badge variant="outline" className="text-xs">
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  保存中...
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs">
+                  <Save className="w-3 h-3 mr-1" />
+                  已同步
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -417,12 +522,16 @@ const ModernWorld2Game: React.FC = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex justify-center space-x-4">
-            <Button onClick={() => setGameStarted(false)}>
+            <Button onClick={() => setGameStarted(false)} variant="outline">
               返回選擇國家
             </Button>
             <Button variant="outline">
               <TrendingUp className="w-4 h-4 mr-2" />
               查看統計
+            </Button>
+            <Button onClick={autoSave} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? '保存中...' : '手動保存'}
             </Button>
           </div>
         </CardContent>
