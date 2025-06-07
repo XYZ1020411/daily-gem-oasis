@@ -1,150 +1,155 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useUser } from '@/contexts/UserContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Gamepad2, 
-  Users, 
-  Clock, 
-  Trophy,
-  Play,
-  Plus,
-  Share2,
-  Zap
-} from 'lucide-react';
+import { Gamepad2, Trophy, Star, Users, Crown, Globe, Sword } from 'lucide-react';
+import CountryGameModal from './CountryGameModal';
+import ModernWorld2Game from './ModernWorld2Game';
 
 const GamesPage = () => {
   const { user, profile, updatePoints } = useUser();
   const { toast } = useToast();
-  const [gameSessions, setGameSessions] = useState<any[]>([]);
-  const [userGameData, setUserGameData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [showCountryGame, setShowCountryGame] = useState(false);
+  const [showModernWorld2, setShowModernWorld2] = useState(false);
 
-  // 載入遊戲數據
-  useEffect(() => {
-    if (user) {
-      loadGameData();
+  const games = [
+    {
+      id: 'scratch-card',
+      title: '刮刮樂',
+      description: '花費積分購買刮刮樂，有機會獲得豐厚獎勵！',
+      icon: Star,
+      cost: 1000,
+      maxReward: 50000,
+      category: '運氣遊戲'
+    },
+    {
+      id: 'daily-quiz',
+      title: '每日問答',
+      description: '回答問題獲得積分，每天都有新題目！',
+      icon: Trophy,
+      cost: 0,
+      maxReward: 5000,
+      category: '益智遊戲'
+    },
+    {
+      id: 'country-guess',
+      title: '猜國家遊戲',
+      description: '根據提示猜出正確的國家名稱',
+      icon: Globe,
+      cost: 500,
+      maxReward: 3000,
+      category: '地理遊戲'
+    },
+    {
+      id: 'modern-world-2',
+      title: '現代世界2',
+      description: '地緣政治策略遊戲，以總統身份管理現代國家',
+      icon: Crown,
+      cost: 0,
+      maxReward: 0,
+      category: '策略遊戲',
+      featured: true
     }
-  }, [user]);
-
-  const loadGameData = async () => {
-    try {
-      // 載入活躍的遊戲會話
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('game_sessions')
-        .select(`
-          *,
-          game_session_participants(count)
-        `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (sessionsError) throw sessionsError;
-
-      // 載入用戶遊戲數據
-      const { data: gameData, error: gameDataError } = await supabase
-        .from('user_game_data')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('last_played', { ascending: false });
-
-      if (gameDataError) throw gameDataError;
-
-      setGameSessions(sessions || []);
-      setUserGameData(gameData || []);
-    } catch (error) {
-      console.error('載入遊戲數據失敗:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 創建新遊戲會話
-  const createGameSession = async (gameType: string, sessionName: string) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('game_sessions')
-        .insert({
-          session_name: sessionName,
-          game_type: gameType,
-          host_user_id: user.id,
-          max_players: 4,
-          session_data: {}
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // 自動加入會話
-      await joinGameSession(data.id);
-      
-      toast({
-        title: "遊戲會話已創建",
-        description: `${sessionName} 已成功創建`
-      });
-
-      loadGameData();
-    } catch (error) {
-      console.error('創建遊戲會話失敗:', error);
-      toast({
-        title: "創建失敗",
-        description: "無法創建遊戲會話",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // 加入遊戲會話
-  const joinGameSession = async (sessionId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('game_session_participants')
-        .insert({
-          session_id: sessionId,
-          user_id: user.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "加入成功",
-        description: "已成功加入遊戲會話"
-      });
-
-      loadGameData();
-    } catch (error) {
-      console.error('加入遊戲會話失敗:', error);
-      toast({
-        title: "加入失敗",
-        description: "無法加入遊戲會話",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const gameTypes = [
-    { id: 'memory', name: '記憶遊戲', icon: '🧠', description: '測試你的記憶力' },
-    { id: 'puzzle', name: '拼圖遊戲', icon: '🧩', description: '挑戰邏輯思維' },
-    { id: 'trivia', name: '問答遊戲', icon: '❓', description: '知識問答挑戰' },
-    { id: 'action', name: '動作遊戲', icon: '⚡', description: '反應速度測試' }
   ];
 
-  if (isLoading) {
+  const playGame = async (gameId: string, cost: number) => {
+    if (!profile || profile.points < cost) {
+      toast({
+        title: "積分不足",
+        description: "您的積分不足以玩這個遊戲",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (gameId === 'country-guess') {
+      setShowCountryGame(true);
+      return;
+    }
+
+    if (gameId === 'modern-world-2') {
+      setShowModernWorld2(true);
+      return;
+    }
+
+    // 扣除遊戲費用
+    if (cost > 0) {
+      await updatePoints(-cost, `玩遊戲: ${games.find(g => g.id === gameId)?.title}`);
+    }
+
+    // 模擬遊戲結果
+    let reward = 0;
+    let resultMessage = '';
+
+    switch (gameId) {
+      case 'scratch-card':
+        const random = Math.random();
+        if (random < 0.01) { // 1% 大獎
+          reward = 50000;
+          resultMessage = '恭喜！中了大獎！';
+        } else if (random < 0.1) { // 9% 中獎
+          reward = Math.floor(Math.random() * 5000) + 2000;
+          resultMessage = '恭喜中獎！';
+        } else if (random < 0.3) { // 20% 小獎
+          reward = Math.floor(Math.random() * 1000) + 500;
+          resultMessage = '獲得小獎！';
+        } else {
+          resultMessage = '謝謝參與，下次再來！';
+        }
+        break;
+      
+      case 'daily-quiz':
+        // 模擬問答正確率
+        const correct = Math.random() > 0.3; // 70% 正確率
+        if (correct) {
+          reward = Math.floor(Math.random() * 3000) + 2000;
+          resultMessage = '回答正確！';
+        } else {
+          reward = 500; // 安慰獎
+          resultMessage = '回答錯誤，但獲得安慰獎';
+        }
+        break;
+    }
+
+    // 發放獎勵
+    if (reward > 0) {
+      await updatePoints(reward, `遊戲獎勵: ${games.find(g => g.id === gameId)?.title}`);
+    }
+
+    toast({
+      title: resultMessage,
+      description: reward > 0 ? `獲得 ${reward.toLocaleString()} 積分！` : "感謝參與！"
+    });
+  };
+
+  const handleCountryGameComplete = async (points: number) => {
+    await updatePoints(points, '猜國家遊戲獎勵');
+    setShowCountryGame(false);
+    toast({
+      title: "遊戲完成",
+      description: `獲得 ${points.toLocaleString()} 積分！`
+    });
+  };
+
+  if (showModernWorld2) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">載入遊戲數據中...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">現代世界2</h1>
+            <p className="text-muted-foreground">總統策略模擬遊戲</p>
+          </div>
+          <Button variant="outline" onClick={() => setShowModernWorld2(false)}>
+            返回遊戲大廳
+          </Button>
         </div>
+        
+        <ModernWorld2Game />
       </div>
     );
   }
@@ -153,169 +158,137 @@ const GamesPage = () => {
     <div className="space-y-6">
       {/* 頁面標題 */}
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
           遊戲娛樂中心
         </h1>
         <p className="text-muted-foreground">
-          歡迎 {profile?.username || profile?.display_name || '玩家'} 來到遊戲世界！
+          玩遊戲賺積分，享受娛樂時光！
         </p>
       </div>
 
-      {/* 用戶遊戲統計 */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Trophy className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
-            <div className="text-2xl font-bold">{profile?.points || 0}</div>
-            <p className="text-sm text-muted-foreground">總積分</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Gamepad2 className="w-8 h-8 mx-auto text-blue-500 mb-2" />
-            <div className="text-2xl font-bold">{userGameData.length}</div>
-            <p className="text-sm text-muted-foreground">已玩遊戲</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Users className="w-8 h-8 mx-auto text-green-500 mb-2" />
-            <div className="text-2xl font-bold">{gameSessions.length}</div>
-            <p className="text-sm text-muted-foreground">活躍會話</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 快速開始遊戲 */}
+      {/* 用戶狀態 */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Zap className="w-6 h-6 text-orange-500" />
-            <span>快速開始</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {gameTypes.map((game) => (
-              <Button
-                key={game.id}
-                variant="outline"
-                className="h-auto p-4 flex flex-col items-center space-y-2"
-                onClick={() => createGameSession(game.id, `${game.name} - ${new Date().toLocaleTimeString()}`)}
-              >
-                <span className="text-2xl">{game.icon}</span>
-                <span className="font-medium">{game.name}</span>
-                <span className="text-xs text-muted-foreground text-center">{game.description}</span>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 活躍遊戲會話 */}
-      <Card>
-        <CardHeader>
+        <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="w-6 h-6 text-blue-500" />
-              <span>活躍遊戲會話</span>
-            </CardTitle>
-            <Button 
-              size="sm"
-              onClick={() => createGameSession('custom', `自定義會話 - ${new Date().toLocaleTimeString()}`)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              創建會話
-            </Button>
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                {(profile?.username || profile?.display_name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-medium">歡迎, {profile?.username || profile?.display_name}</p>
+                <p className="text-sm text-muted-foreground">
+                  當前積分: <span className="font-medium text-green-600">{profile?.points?.toLocaleString() || 0}</span>
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Gamepad2 className="w-5 h-5 text-purple-500" />
+              <span className="text-sm text-muted-foreground">遊戲愛好者</span>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {gameSessions.length > 0 ? (
-            <div className="space-y-4">
-              {gameSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{session.session_name}</h4>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                      <span className="flex items-center space-x-1">
-                        <Gamepad2 className="w-4 h-4" />
-                        <span>{session.game_type}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{session.game_session_participants?.[0]?.count || 0}/{session.max_players}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{new Date(session.created_at).toLocaleTimeString()}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      size="sm"
-                      onClick={() => joinGameSession(session.id)}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      加入
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Gamepad2 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-muted-foreground">目前沒有活躍的遊戲會話</p>
-              <Button 
-                className="mt-4"
-                onClick={() => createGameSession('memory', `記憶遊戲 - ${new Date().toLocaleTimeString()}`)}
-              >
-                開始第一個遊戲
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* 我的遊戲記錄 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Trophy className="w-6 h-6 text-yellow-500" />
-            <span>我的遊戲記錄</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {userGameData.length > 0 ? (
-            <div className="space-y-3">
-              {userGameData.slice(0, 5).map((gameData) => (
-                <div key={gameData.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{gameData.game_type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      最後遊玩: {new Date(gameData.last_played).toLocaleString()}
-                    </p>
-                  </div>
-                  <Badge variant="outline">
-                    {JSON.stringify(gameData.game_data).length > 50 ? '有數據' : '無數據'}
+      {/* 遊戲列表 */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {games.map((game) => {
+          const Icon = game.icon;
+          return (
+            <Card key={game.id} className={`relative ${game.featured ? 'ring-2 ring-yellow-500' : ''}`}>
+              {game.featured && (
+                <div className="absolute -top-2 -right-2">
+                  <Badge className="bg-yellow-500 text-yellow-900">
+                    <Star className="w-3 h-3 mr-1" />
+                    精選
                   </Badge>
                 </div>
-              ))}
+              )}
+              
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{game.title}</CardTitle>
+                    <Badge variant="secondary" className="text-xs">
+                      {game.category}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{game.description}</p>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>遊戲費用:</span>
+                    <span className={game.cost === 0 ? 'text-green-600' : 'text-orange-600'}>
+                      {game.cost === 0 ? '免費' : `${game.cost.toLocaleString()} 積分`}
+                    </span>
+                  </div>
+                  
+                  {game.maxReward > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>最高獎勵:</span>
+                      <span className="text-green-600 font-medium">
+                        {game.maxReward.toLocaleString()} 積分
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  className="w-full" 
+                  onClick={() => playGame(game.id, game.cost)}
+                  disabled={profile && profile.points < game.cost}
+                >
+                  {game.cost === 0 ? '開始遊戲' : `花費 ${game.cost.toLocaleString()} 積分遊玩`}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* 遊戲統計 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            <span>今日遊戲統計</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-purple-600">12</p>
+              <p className="text-sm text-muted-foreground">今日遊玩次數</p>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-muted-foreground">還沒有遊戲記錄</p>
+            <div>
+              <p className="text-2xl font-bold text-green-600">+15,500</p>
+              <p className="text-sm text-muted-foreground">今日獲得積分</p>
             </div>
-          )}
+            <div>
+              <p className="text-2xl font-bold text-blue-600">85%</p>
+              <p className="text-sm text-muted-foreground">勝率</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-orange-600">7</p>
+              <p className="text-sm text-muted-foreground">連勝次數</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* 猜國家遊戲對話框 */}
+      <CountryGameModal 
+        isOpen={showCountryGame}
+        onClose={() => setShowCountryGame(false)}
+        onComplete={handleCountryGameComplete}
+      />
     </div>
   );
 };

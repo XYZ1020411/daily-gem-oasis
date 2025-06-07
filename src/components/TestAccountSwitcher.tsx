@@ -3,19 +3,12 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
-import { UserCheck, Crown, Shield } from 'lucide-react';
+import { UserCheck, Crown } from 'lucide-react';
 
 const TestAccountSwitcher: React.FC = () => {
   const { switchToTestAccount, signOut, isTestMode } = useUser();
 
   const testAccounts = [
-    {
-      type: 'admin' as const,
-      label: '管理員 (002)',
-      description: '完整管理權限',
-      icon: Shield,
-      color: 'bg-red-500'
-    },
     {
       type: 'vip1' as const,
       label: 'VIP會員 (001)',
@@ -38,6 +31,7 @@ const TestAccountSwitcher: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">測試帳號切換</h2>
           <p className="text-muted-foreground">選擇一個測試帳號來體驗不同角色的功能</p>
+          <p className="text-sm text-orange-600 mt-2">管理員帳號請使用真實註冊方式登入</p>
         </div>
 
         <div className="grid gap-4">

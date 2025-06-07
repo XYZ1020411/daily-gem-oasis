@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -49,7 +48,7 @@ interface UserContextType {
   redeemGiftCode: (code: string) => boolean;
   
   // 測試帳號功能
-  switchToTestAccount: (accountType: 'admin' | 'vip1' | 'vip2') => void;
+  switchToTestAccount: (accountType: 'vip1' | 'vip2') => void;
   isTestMode: boolean;
 }
 
@@ -75,26 +74,25 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [isTestMode, setIsTestMode] = useState(false);
   
   // Mock data - these would normally come from Supabase
-  const [users] = useState([]);
+  const [users] = useState([
+    {
+      id: 'admin-real-001',
+      username: 'admin',
+      email: 'admin@system.com',
+      role: 'admin',
+      points: 1000000,
+      vip_level: 0,
+      status: 'active',
+      created_at: new Date().toISOString()
+    }
+  ]);
   const [products] = useState([]);
   const [exchanges] = useState([]);
   const [announcements] = useState([]);
   const [transactions] = useState([]);
 
-  // 測試帳號資料
+  // 測試帳號資料 (移除管理員帳號，只保留VIP測試帳號)
   const testAccounts = {
-    admin: {
-      id: 'test-admin-002',
-      username: 'admin002',
-      display_name: '管理員 (002)',
-      role: 'admin',
-      points: 1000000,
-      vip_level: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_check_in: null,
-      check_in_streak: 0
-    },
     vip1: {
       id: 'test-vip-001',
       username: 'vip001',
@@ -121,8 +119,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  // 切換到測試帳號
-  const switchToTestAccount = (accountType: 'admin' | 'vip1' | 'vip2') => {
+  // 切換到測試帳號 (只支援VIP帳號)
+  const switchToTestAccount = (accountType: 'vip1' | 'vip2') => {
     const testProfile = testAccounts[accountType];
     setProfile(testProfile);
     setIsTestMode(true);
