@@ -39,6 +39,48 @@ export type Database = {
         }
         Relationships: []
       }
+      countries: {
+        Row: {
+          capital: string | null
+          created_at: string
+          difficulty: string
+          flag_emoji: string
+          gdp: number | null
+          id: string
+          name: string
+          population: number | null
+          power_level: number
+          region: string
+          updated_at: string
+        }
+        Insert: {
+          capital?: string | null
+          created_at?: string
+          difficulty: string
+          flag_emoji: string
+          gdp?: number | null
+          id?: string
+          name: string
+          population?: number | null
+          power_level: number
+          region: string
+          updated_at?: string
+        }
+        Update: {
+          capital?: string | null
+          created_at?: string
+          difficulty?: string
+          flag_emoji?: string
+          gdp?: number | null
+          id?: string
+          name?: string
+          population?: number | null
+          power_level?: number
+          region?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_support: {
         Row: {
           admin_response: string | null
@@ -139,6 +181,76 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      game_sessions_mw2: {
+        Row: {
+          country_id: string
+          created_at: string
+          game_state: Json
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country_id: string
+          created_at?: string
+          game_state?: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country_id?: string
+          created_at?: string
+          game_state?: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_mw2_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_actions_mw2: {
+        Row: {
+          action_data: Json
+          action_type: string
+          id: string
+          session_id: string
+          timestamp: string
+        }
+        Insert: {
+          action_data?: Json
+          action_type: string
+          id?: string
+          session_id: string
+          timestamp?: string
+        }
+        Update: {
+          action_data?: Json
+          action_type?: string
+          id?: string
+          session_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_actions_mw2_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions_mw2"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       points_transactions: {
         Row: {
