@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,10 @@ import { Gavel, Briefcase, Building, Shield, Handshake, Coins, Heart, Users, Plu
 interface CountryGameModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onReward: (amount: number, reason: string) => void;
+  onComplete: (points: number) => Promise<void>;
 }
 
-const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, onReward }) => {
+const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, onComplete }) => {
   const [countryName, setCountryName] = useState('新國家');
   const [treasury, setTreasury] = useState(10000);
   const [population, setPopulation] = useState(1000);
@@ -42,7 +41,7 @@ const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, on
     ]
   };
 
-  const handleQuickAction = (actionType: string, actionName: string, cost: number, reward: number) => {
+  const handleQuickAction = async (actionType: string, actionName: string, cost: number, reward: number) => {
     if (treasury >= cost) {
       setTreasury(prev => prev - cost);
       
@@ -67,11 +66,11 @@ const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, on
           break;
       }
       
-      onReward(reward, `${actionName}獎勵`);
+      await onComplete(reward);
     }
   };
 
-  const handleCustomAction = (actionType: string, actionName: string, cost: number, reward: number) => {
+  const handleCustomAction = async (actionType: string, actionName: string, cost: number, reward: number) => {
     if (treasury >= cost) {
       setTreasury(prev => prev - cost);
       
@@ -99,7 +98,7 @@ const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, on
           break;
       }
       
-      onReward(reward, `${actionName}獎勵`);
+      await onComplete(reward);
     }
   };
 
@@ -121,9 +120,9 @@ const CountryGameModal: React.FC<CountryGameModalProps> = ({ isOpen, onClose, on
     }
   };
 
-  const handleCloseGame = () => {
+  const handleCloseGame = async () => {
     const finalReward = Math.floor((happiness + military + population / 50) / 3);
-    onReward(finalReward, '國家發展獎勵');
+    await onComplete(finalReward);
     onClose();
   };
 
