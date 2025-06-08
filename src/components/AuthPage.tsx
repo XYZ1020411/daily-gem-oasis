@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 import { Loader2, Mail, Lock, User, Crown, Shield } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import TestAccountSwitcher from './TestAccountSwitcher';
 
 const AuthPage: React.FC = () => {
@@ -16,22 +16,26 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [showTestAccounts, setShowTestAccounts] = useState(false);
-  const { isTestMode } = useUser();
+  const { isTestMode, signIn, signUp } = useUser();
+  const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      await signIn(email, password);
+      toast({
+        title: "登入成功",
+        description: "歡迎回來！",
       });
-
-      if (error) throw error;
     } catch (error: any) {
-      console.error('登入錯誤:', error.message);
-      alert(`登入失敗: ${error.message}`);
+      console.error('登入錯誤:', error);
+      toast({
+        title: "登入失敗",
+        description: error.message || "請檢查您的帳號密碼",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -42,22 +46,18 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            display_name: username,
-          },
-        },
+      await signUp(email, password, username);
+      toast({
+        title: "註冊成功",
+        description: "請檢查您的電子郵件以驗證帳號",
       });
-
-      if (error) throw error;
-      alert('註冊成功！請檢查您的電子郵件以驗證帳號。');
     } catch (error: any) {
-      console.error('註冊錯誤:', error.message);
-      alert(`註冊失敗: ${error.message}`);
+      console.error('註冊錯誤:', error);
+      toast({
+        title: "註冊失敗", 
+        description: error.message || "註冊時發生錯誤，請重試",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
