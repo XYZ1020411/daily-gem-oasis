@@ -291,6 +291,7 @@ export type Database = {
           check_in_streak: number | null
           created_at: string | null
           display_name: string | null
+          email_username: string | null
           id: string
           join_date: string | null
           last_check_in: string | null
@@ -306,6 +307,7 @@ export type Database = {
           check_in_streak?: number | null
           created_at?: string | null
           display_name?: string | null
+          email_username?: string | null
           id: string
           join_date?: string | null
           last_check_in?: string | null
@@ -321,6 +323,7 @@ export type Database = {
           check_in_streak?: number | null
           created_at?: string | null
           display_name?: string | null
+          email_username?: string | null
           id?: string
           join_date?: string | null
           last_check_in?: string | null
@@ -387,6 +390,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sync_data: {
+        Row: {
+          created_at: string | null
+          data_content: Json
+          data_type: string
+          id: string
+          last_modified: string | null
+          sync_version: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_content?: Json
+          data_type: string
+          id?: string
+          last_modified?: string | null
+          sync_version?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_content?: Json
+          data_type?: string
+          id?: string
+          last_modified?: string | null
+          sync_version?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sync_status: {
         Row: {
           created_at: string
@@ -437,7 +470,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_id_by_username: {
+        Args: { username_input: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

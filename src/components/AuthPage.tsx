@@ -34,9 +34,7 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // 將用戶名轉換為email格式進行登入
-      const email = `${username}@game.local`;
-      await signIn(email, password);
+      await signIn(username, password);
       toast({
         title: "登入成功",
         description: "歡迎回來！",
@@ -75,18 +73,26 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // 將用戶名轉換為email格式進行註冊
-      const email = `${username}@game.local`;
-      await signUp(email, password, username);
+      await signUp(username, password, username);
       toast({
         title: "註冊成功",
-        description: "帳號已成功創建！",
+        description: "帳號已成功創建！請檢查您的信箱確認帳號（如果使用真實email）",
       });
     } catch (error: any) {
       console.error('註冊錯誤:', error);
+      let errorMessage = "註冊時發生錯誤，請重試";
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = "此用戶名稱已被註冊，請使用其他名稱";
+      } else if (error.message?.includes('Password should be at least')) {
+        errorMessage = "密碼長度至少需要6個字符";
+      } else if (error.message?.includes('email')) {
+        errorMessage = "用戶名稱格式不正確";
+      }
+      
       toast({
         title: "註冊失敗", 
-        description: error.message || "註冊時發生錯誤，請重試",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -222,11 +228,12 @@ const AuthPage: React.FC = () => {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="輸入您的密碼"
+                      placeholder="輸入您的密碼 (至少6個字符)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>

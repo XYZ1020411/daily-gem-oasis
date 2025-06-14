@@ -195,8 +195,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    // 如果輸入的是用戶名稱，轉換為email格式
+    const loginEmail = email.includes('@') ? email : `${email}@game.local`;
+    
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
@@ -206,10 +209,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+    // 確保email格式正確
+    const signupEmail = email.includes('@') ? email : `${email}@game.local`;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email: signupEmail,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/`,
         data: {
           username,
           display_name: username,
@@ -220,9 +227,21 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (error) {
       throw error;
     }
+
+    // 如果註冊成功，更新 email_username 欄位
+    if (data.user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ email_username: username })
+          .eq('id', data.user.id);
+      } catch (updateError) {
+        console.error('Error updating email_username:', updateError);
+      }
+    }
   };
 
-  // 創建特殊帳號的函數 - 更新為支援名稱登入
+  // 創建特殊帳號的函數
   const createRealAccounts = async () => {
     const accounts = [
       {
@@ -246,7 +265,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         password: '002password', 
         username: '002',
         role: 'admin',
-        points: 1000000
+        points: 1000000,
+        vip_level: 0
       }
     ];
 
@@ -254,49 +274,48 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     
     for (const account of accounts) {
       try {
+        console.log(`正在創建帳號: ${account.username}`);
+        
         // 創建帳號
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: account.email,
           password: account.password,
           options: {
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               username: account.username,
               display_name: account.username,
+              role: account.role,
+              points: account.points,
+              vip_level: account.vip_level
             },
           },
         });
 
         if (authError) {
-          console.error(`Error creating account ${account.email}:`, authError);
+          console.error(`創建帳號 ${account.username} 時發生錯誤:`, authError);
+          if (authError.message.includes('User already registered')) {
+            console.log(`帳號 ${account.username} 已存在，跳過創建`);
+            results.push({
+              email: account.username,
+              password: account.password,
+              role: account.role,
+              status: 'already_exists'
+            });
+          }
           continue;
         }
 
-        // 如果帳號創建成功，設置用戶資料
-        if (authData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              username: account.username,
-              display_name: account.username,
-              role: account.role,
-              points: account.points,
-              vip_level: account.vip_level || 0,
-            })
-            .eq('id', authData.user.id);
-
-          if (profileError) {
-            console.error(`Error updating profile for ${account.email}:`, profileError);
-          }
-        }
-
+        console.log(`帳號 ${account.username} 創建成功`);
         results.push({
-          email: account.username, // 返回用戶名而不是完整email
+          email: account.username,
           password: account.password,
-          role: account.role
+          role: account.role,
+          status: 'created'
         });
         
       } catch (error) {
-        console.error(`Error processing account ${account.email}:`, error);
+        console.error(`處理帳號 ${account.username} 時發生錯誤:`, error);
       }
     }
 
