@@ -19,6 +19,33 @@ export const useGameSession = (countryId?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (user && countryId) {
+      loadExistingSession(countryId);
+    }
+  }, [user, countryId]);
+
+  const loadExistingSession = async (selectedCountryId: string) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('game_sessions_mw2')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('country_id', selectedCountryId)
+        .eq('is_active', true)
+        .single();
+
+      if (data) {
+        setSession(data);
+      }
+    } catch (err) {
+      // 沒有找到會話是正常的
+      console.log('No existing session found');
+    }
+  };
+
   const createSession = async (selectedCountryId: string, initialGameState: any) => {
     if (!user) {
       setError('請先登入');
@@ -27,12 +54,21 @@ export const useGameSession = (countryId?: string) => {
 
     try {
       setLoading(true);
+      
+      // 停用舊的會話
+      await supabase
+        .from('game_sessions_mw2')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('country_id', selectedCountryId);
+
       const { data, error } = await supabase
         .from('game_sessions_mw2')
         .insert({
           user_id: user.id,
           country_id: selectedCountryId,
-          game_state: initialGameState
+          game_state: initialGameState,
+          is_active: true
         })
         .select()
         .single();
@@ -50,7 +86,7 @@ export const useGameSession = (countryId?: string) => {
   };
 
   const updateGameState = async (newGameState: any) => {
-    if (!session) return;
+    if (!session || !user) return;
 
     try {
       const { error } = await supabase
@@ -59,7 +95,8 @@ export const useGameSession = (countryId?: string) => {
           game_state: newGameState,
           updated_at: new Date().toISOString()
         })
-        .eq('id', session.id);
+        .eq('id', session.id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
       
@@ -71,7 +108,7 @@ export const useGameSession = (countryId?: string) => {
   };
 
   const recordAction = async (actionType: string, actionData: any) => {
-    if (!session) return;
+    if (!session || !user) return;
 
     try {
       await supabase
@@ -86,8 +123,30 @@ export const useGameSession = (countryId?: string) => {
     }
   };
 
+  const syncGameState = async () => {
+    if (!session || !user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('game_sessions_mw2')
+        .select('*')
+        .eq('id', session.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setSession(data);
+        return data.game_state;
+      }
+    } catch (err) {
+      console.error('Error syncing game state:', err);
+      setError(err instanceof Error ? err.message : '同步遊戲狀態失敗');
+    }
+  };
+
   useEffect(() => {
-    if (!session) return;
+    if (!session || !user) return;
 
     // 監聽即時更新
     const channel = supabase
@@ -110,7 +169,7 @@ export const useGameSession = (countryId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.id]);
+  }, [session?.id, user]);
 
   return {
     session,
@@ -118,6 +177,7 @@ export const useGameSession = (countryId?: string) => {
     error,
     createSession,
     updateGameState,
-    recordAction
+    recordAction,
+    syncGameState
   };
 };

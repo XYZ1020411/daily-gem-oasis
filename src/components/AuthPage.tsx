@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { Loader2, Mail, Lock, User, Crown, Shield } from 'lucide-react';
+import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TestAccountSwitcher from './TestAccountSwitcher';
 
@@ -16,13 +16,21 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [showTestAccounts, setShowTestAccounts] = useState(false);
-  const { isTestMode, signIn, signUp } = useUser();
+  const { signIn, signUp, createRealAccounts } = useUser();
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!email || !password) {
+      toast({
+        title: "請填寫完整資訊",
+        description: "請輸入電子郵件和密碼",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    setIsLoading(true);
     try {
       await signIn(email, password);
       toast({
@@ -43,8 +51,16 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!email || !password || !username) {
+      toast({
+        title: "請填寫完整資訊",
+        description: "請輸入所有必填欄位",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    setIsLoading(true);
     try {
       await signUp(email, password, username);
       toast({
@@ -56,6 +72,27 @@ const AuthPage: React.FC = () => {
       toast({
         title: "註冊失敗", 
         description: error.message || "註冊時發生錯誤，請重試",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateRealAccounts = async () => {
+    setIsLoading(true);
+    try {
+      const result = await createRealAccounts();
+      toast({
+        title: "真實帳號創建成功",
+        description: `已創建 ${result.accounts.length} 個帳號`,
+      });
+      console.log('創建的帳號:', result.accounts);
+    } catch (error: any) {
+      console.error('創建帳號錯誤:', error);
+      toast({
+        title: "創建失敗",
+        description: error.message || "創建帳號時發生錯誤",
         variant: "destructive"
       });
     } finally {
@@ -211,9 +248,17 @@ const AuthPage: React.FC = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 pt-6 border-t">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">或者使用測試帳號體驗功能</p>
+          <div className="mt-6 pt-6 border-t space-y-3">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">開發者工具</p>
+              <Button
+                variant="outline"
+                onClick={handleCreateRealAccounts}
+                disabled={isLoading}
+                className="w-full mb-2"
+              >
+                創建真實帳號 (001, vip8888, 002)
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowTestAccounts(true)}
