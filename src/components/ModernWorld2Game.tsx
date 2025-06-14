@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@/contexts/UserContext';
 import { useGameSession } from '@/hooks/useGameSession';
-import { Globe, Crown, Sword, Shield, Users, DollarSign, Factory, Zap, Save, Upload, Check, Clock, Map, MessageCircle, Hammer, Pickaxe, Wheat, Oil, Play, Pause, FastForward } from 'lucide-react';
+import { Globe, Crown, Sword, Shield, Users, DollarSign, Factory, Zap, Save, Upload, Check, Clock, Map, MessageCircle, Hammer, Pickaxe, Wheat, Fuel, Play, Pause, FastForward } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Country {
@@ -302,9 +301,10 @@ const ModernWorld2Game: React.FC = () => {
 
   const executeConstruction = (type: string, cost: any, time: number) => {
     // 檢查資源是否足夠
-    const hasEnoughResources = Object.entries(cost).every(([resource, amount]) => 
-      gameState.resources[resource as keyof typeof gameState.resources] >= amount
-    );
+    const hasEnoughResources = Object.entries(cost).every(([resource, amount]) => {
+      const currentAmount = gameState.resources[resource as keyof typeof gameState.resources];
+      return currentAmount >= (amount as number);
+    });
     
     if (!hasEnoughResources) {
       toast({
@@ -318,7 +318,8 @@ const ModernWorld2Game: React.FC = () => {
     // 扣除資源並開始建設
     const newGameState = { ...gameState };
     Object.entries(cost).forEach(([resource, amount]) => {
-      newGameState.resources[resource as keyof typeof newGameState.resources] -= amount;
+      const currentAmount = newGameState.resources[resource as keyof typeof newGameState.resources];
+      newGameState.resources[resource as keyof typeof newGameState.resources] = currentAmount - (amount as number);
     });
     
     newGameState.construction.push({
@@ -570,7 +571,7 @@ const ModernWorld2Game: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div className="text-center">
-              <Oil className="w-6 h-6 mx-auto mb-1 text-black" />
+              <Fuel className="w-6 h-6 mx-auto mb-1 text-black" />
               <div className="text-lg font-bold">{Math.floor(gameState.resources.oil)}</div>
               <div className="text-sm text-muted-foreground">石油</div>
             </div>
