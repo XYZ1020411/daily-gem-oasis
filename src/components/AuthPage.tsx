@@ -39,18 +39,18 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // 將用戶名稱轉換為電子郵件格式進行登入
-      const emailFormat = username.includes('@') ? username : `${username}@game.local`;
-      await signIn(emailFormat, password);
+      console.log('Attempting login with username:', username);
+      await signIn(username, password);
+      console.log('Login successful');
     } catch (error: any) {
       console.error('登入錯誤:', error);
       
       let errorMessage = "請檢查您的用戶名稱和密碼";
       
-      if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
-        errorMessage = "系統暫時使用離線模式，請使用預設帳號登入";
-      } else if (error.message === '電子郵件或密碼錯誤') {
+      if (error.message === '用戶名稱或密碼錯誤') {
         errorMessage = "用戶名稱或密碼錯誤，請檢查後重試";
+      } else if (error.message === 'Invalid login credentials') {
+        errorMessage = "用戶名稱或密碼錯誤，請使用預設帳號：vip001, vip8888, admin002";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -276,7 +276,7 @@ const AuthPage: React.FC = () => {
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-medium text-blue-800 mb-2">系統提示：</h4>
                 <div className="text-sm text-blue-700 space-y-1">
-                  <div className="mb-2">目前使用離線模式，請使用以下預設帳號：</div>
+                  <div className="mb-2">請使用以下預設帳號登入：</div>
                   <div>• 用戶名稱: <strong>vip001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
                   <div>• 用戶名稱: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
                   <div>• 用戶名稱: <strong>admin002</strong> 密碼: <strong>002password</strong> (管理員)</div>

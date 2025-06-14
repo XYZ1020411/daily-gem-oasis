@@ -79,7 +79,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session.user);
         try {
           await fetchProfile(session.user.id);
-          // 確保登入成功後立即更新 loading 狀態
           setIsLoading(false);
         } catch (error) {
           console.error('Error fetching profile after sign in:', error);
@@ -158,29 +157,33 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 特殊處理：當 Supabase 電子郵件登入被禁用時，使用預設帳號
-  const handleSpecialLogin = async (email: string, password: string) => {
-    // 預設的管理員帳號 - 改為電子郵件格式
+  const handleSpecialLogin = async (username: string, password: string) => {
+    console.log('Attempting special login for:', username);
+    
+    // 預設的管理員帳號
     const specialAccounts = {
-      'vip001@game.local': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
-      'vip8888@game.local': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
-      'admin002@game.local': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
+      'vip001': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
+      'vip8888': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
+      'admin002': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
     };
 
-    const account = specialAccounts[email as keyof typeof specialAccounts];
+    const account = specialAccounts[username as keyof typeof specialAccounts];
     if (account && account.password === password) {
+      console.log('Special account found, logging in...');
+      
       // 創建模擬用戶
       const mockUser = {
-        id: `special-${email.split('@')[0]}`,
-        email: email,
+        id: `special-${username}`,
+        email: `${username}@game.local`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
       const mockProfile: User = {
         id: mockUser.id,
-        username: email.split('@')[0],
+        username: username,
         display_name: account.display_name,
-        email_username: email.split('@')[0],
+        email_username: username,
         role: account.role,
         points: account.points,
         vip_level: account.vip_level,
@@ -204,36 +207,52 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    throw new Error("電子郵件或密碼錯誤");
+    throw new Error("用戶名稱或密碼錯誤");
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (usernameOrEmail: string, password: string) => {
+    console.log('SignIn called with:', usernameOrEmail);
     setIsLoading(true);
+    
     try {
-      // 首先嘗試正常的 Supabase 登入
+      // 檢查是否為預設帳號用戶名稱
+      const isSpecialAccount = ['vip001', 'vip8888', 'admin002'].includes(usernameOrEmail);
+      
+      if (isSpecialAccount) {
+        console.log('Using special account login');
+        await handleSpecialLogin(usernameOrEmail, password);
+        return;
+      }
+
+      // 如果不是預設帳號且不包含@，轉換為電子郵件格式
+      const emailFormat = usernameOrEmail.includes('@') ? usernameOrEmail : `${usernameOrEmail}@game.local`;
+      
+      console.log('Attempting Supabase login with:', emailFormat);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: emailFormat,
         password: password,
       });
 
       if (error) {
-        // 如果是電子郵件登入被禁用的錯誤，使用特殊處理
+        console.log('Supabase login failed:', error.message);
+        // 如果是電子郵件登入被禁用的錯誤，嘗試特殊處理
         if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
-          await handleSpecialLogin(email, password);
+          await handleSpecialLogin(usernameOrEmail, password);
           return;
         }
         throw error;
       }
 
       if (data?.user) {
+        console.log('Supabase login successful');
         setUser(data.user);
         await fetchProfile(data.user.id);
-        // 修復：登入成功後不需要手動設置 loading，因為 onAuthStateChange 會處理
       }
     } catch (error: any) {
       console.error('登入錯誤:', error);
-      setIsLoading(false); // 確保錯誤時重置loading狀態
-      throw error; // 重新拋出錯誤讓組件處理
+      setIsLoading(false);
+      throw error;
     }
   };
 
