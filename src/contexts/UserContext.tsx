@@ -1,8 +1,7 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { UserContextType } from './UserContextTypes';
+import { UserContextType, User } from './UserContextTypes';
 import { useDatabase } from '@/hooks/useDatabase';
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -44,6 +43,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteGiftCode,
     loadData
   } = useDatabase();
+
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -101,7 +102,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw error;
         }
 
-        setUsers(data || []);
+        // Cast the role to the correct type
+        const typedUsers = (data || []).map(user => ({
+          ...user,
+          role: user.role as 'admin' | 'vip' | 'user'
+        })) as User[];
+
+        setUsers(typedUsers);
       } catch (error: any) {
         console.error('Error fetching users:', error);
         toast({
@@ -127,8 +134,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      setProfile(data);
-      return data;
+      // Cast the role to the correct type
+      const typedProfile = {
+        ...data,
+        role: data.role as 'admin' | 'vip' | 'user'
+      } as User;
+
+      setProfile(typedProfile);
+      return typedProfile;
     } catch (error: any) {
       console.error('Error fetching profile:', error);
       toast({
@@ -245,7 +258,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      setProfile(data);
+      const typedProfile = {
+        ...data,
+        role: data.role as 'admin' | 'vip' | 'user'
+      } as User;
+
+      setProfile(typedProfile);
       setUsers(prevUsers => {
         return prevUsers.map(u => u.id === profile.id ? { ...u, ...updates } : u);
       });
@@ -344,7 +362,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      setProfile(data);
+      const typedProfile = {
+        ...data,
+        role: data.role as 'admin' | 'vip' | 'user'
+      } as User;
+
+      setProfile(typedProfile);
       setUsers(prevUsers => {
         return prevUsers.map(u => u.id === profile.id ? { ...u, points: (u.points || 0) + amount } : u);
       });
@@ -465,13 +488,201 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     users,
     isLoading,
-    signIn,
-    signUp,
-    signOut,
+    isLoggedIn,
+    signIn: async (username: string, password: string) => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: `${username}@game.local`,
+          password: password,
+        })
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.user) {
+          setUser(data.user);
+          await fetchProfile(data.user.id);
+        }
+      } catch (error: any) {
+        console.error('登入錯誤:', error);
+        toast({
+          title: "登入失敗",
+          description: error.message || "請檢查您的用戶名稱和密碼",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    signUp: async (username: string, password: string, displayName: string) => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: `${username}@game.local`,
+          password: password,
+          options: {
+            data: {
+              username: username,
+              display_name: displayName,
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.user) {
+          setUser(data.user);
+          await fetchProfile(data.user.id);
+        }
+      } catch (error: any) {
+        console.error('註冊錯誤:', error);
+        toast({
+          title: "註冊失敗",
+          description: error.message || "註冊時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    signOut: async () => {
+      setIsLoading(true);
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          throw error;
+        }
+        setUser(null);
+        setProfile(null);
+        setIsTestMode(false);
+      } catch (error: any) {
+        console.error('登出錯誤:', error);
+        toast({
+          title: "登出失敗",
+          description: error.message || "登出時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
     updateProfile,
-    updateUserById,
-    deleteUser,
-    updatePoints,
+    updateUserById: async (userId: string, updates: Partial<UserContextType['profile']>) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setUsers(prevUsers => {
+          return prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u);
+        });
+
+        toast({
+          title: "更新成功",
+          description: "用戶資料已成功更新",
+        });
+      } catch (error: any) {
+        console.error('更新用戶資料錯誤:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message || "更新用戶資料時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    deleteUser: async (userId: string) => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId);
+
+        if (error) {
+          throw error;
+        }
+
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+
+        toast({
+          title: "刪除成功",
+          description: "用戶已成功刪除",
+        });
+      } catch (error: any) {
+        console.error('刪除用戶錯誤:', error);
+        toast({
+          title: "刪除失敗",
+          description: error.message || "刪除用戶時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    updatePoints: async (amount: number, description: string) => {
+      if (!profile) {
+        toast({
+          title: "錯誤",
+          description: "找不到用戶個人資料",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ points: (profile.points || 0) + amount })
+          .eq('id', profile.id)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        const typedProfile = {
+          ...data,
+          role: data.role as 'admin' | 'vip' | 'user'
+        } as User;
+
+        setProfile(typedProfile);
+        setUsers(prevUsers => {
+          return prevUsers.map(u => u.id === profile.id ? { ...u, points: (u.points || 0) + amount } : u);
+        });
+
+        // 添加交易記錄
+        const transaction = {
+          id: Date.now().toString(),
+          userId: profile.id,
+          amount,
+          description,
+          timestamp: new Date().toISOString(),
+          type: amount > 0 ? 'earn' : 'spend'
+        };
+        setTransactions(prev => [transaction, ...prev]);
+
+        toast({
+          title: "積分更新",
+          description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
+        });
+      } catch (error: any) {
+        console.error('更新積分錯誤:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message || "更新積分時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
     switchToTestAccount,
     isTestMode,
     checkIn,

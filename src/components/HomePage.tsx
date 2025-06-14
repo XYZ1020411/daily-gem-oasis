@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
@@ -28,14 +27,14 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
   const { toast } = useToast();
 
   const handleCheckIn = () => {
-    const success = checkIn();
-    if (success) {
+    try {
+      checkIn();
       const reward = profile?.role === 'vip' ? 20 : 10;
       toast({
         title: "簽到成功！",
         description: `獲得 ${reward} 積分獎勵`,
       });
-    } else {
+    } catch (error) {
       toast({
         title: "今日已簽到",
         description: "明天再來簽到吧！",

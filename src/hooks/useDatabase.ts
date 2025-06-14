@@ -95,10 +95,22 @@ export const useDatabase = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (productsData) setProducts(productsData);
-      if (exchangesData) setExchanges(exchangesData);
-      if (announcementsData) setAnnouncements(announcementsData);
-      if (giftCodesData) setGiftCodes(giftCodesData);
+      if (productsData) setProducts(productsData as Product[]);
+      if (exchangesData) {
+        const typedExchanges = exchangesData.map(exchange => ({
+          ...exchange,
+          status: exchange.status as 'pending' | 'approved' | 'completed' | 'rejected'
+        })) as Exchange[];
+        setExchanges(typedExchanges);
+      }
+      if (announcementsData) {
+        const typedAnnouncements = announcementsData.map(announcement => ({
+          ...announcement,
+          type: announcement.type as 'info' | 'warning' | 'success' | 'urgent'
+        })) as Announcement[];
+        setAnnouncements(typedAnnouncements);
+      }
+      if (giftCodesData) setGiftCodes(giftCodesData as GiftCode[]);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -191,7 +203,7 @@ export const useDatabase = () => {
         description: `商品 ${productData.name} 已新增`
       });
 
-      return data;
+      return data as Product;
     } catch (error: any) {
       console.error('Error adding product:', error);
       toast({
@@ -219,7 +231,7 @@ export const useDatabase = () => {
         description: "商品資訊已更新"
       });
 
-      return data;
+      return data as Product;
     } catch (error: any) {
       console.error('Error updating product:', error);
       toast({
@@ -479,15 +491,246 @@ export const useDatabase = () => {
     loading,
     addProduct,
     updateProduct,
-    deleteProduct,
-    addExchange,
-    updateExchange,
-    addAnnouncement,
-    updateAnnouncement,
-    deleteAnnouncement,
-    addGiftCode,
-    updateGiftCode,
-    deleteGiftCode,
+    deleteProduct: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "商品刪除成功",
+          description: "商品已從系統中移除"
+        });
+      } catch (error: any) {
+        console.error('Error deleting product:', error);
+        toast({
+          title: "刪除失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    addExchange: async (exchangeData: Omit<Exchange, 'id' | 'request_date' | 'sync_version' | 'last_modified'>) => {
+      try {
+        const { data, error } = await supabase
+          .from('exchanges')
+          .insert([exchangeData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "兌換申請成功",
+          description: "兌換申請已提交，請等待審核"
+        });
+
+        return {
+          ...data,
+          status: data.status as 'pending' | 'approved' | 'completed' | 'rejected'
+        } as Exchange;
+      } catch (error: any) {
+        console.error('Error adding exchange:', error);
+        toast({
+          title: "兌換失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    updateExchange: async (id: string, updates: Partial<Exchange>) => {
+      try {
+        const { data, error } = await supabase
+          .from('exchanges')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "兌換狀態更新",
+          description: "兌換狀態已更新"
+        });
+
+        return {
+          ...data,
+          status: data.status as 'pending' | 'approved' | 'completed' | 'rejected'
+        } as Exchange;
+      } catch (error: any) {
+        console.error('Error updating exchange:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    addAnnouncement: async (announcementData: Omit<Announcement, 'id' | 'created_at' | 'sync_version' | 'last_modified'>) => {
+      try {
+        const { data, error } = await supabase
+          .from('announcements')
+          .insert([announcementData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "公告發布成功",
+          description: `公告 ${announcementData.title} 已發布`
+        });
+
+        return {
+          ...data,
+          type: data.type as 'info' | 'warning' | 'success' | 'urgent'
+        } as Announcement;
+      } catch (error: any) {
+        console.error('Error adding announcement:', error);
+        toast({
+          title: "發布失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    updateAnnouncement: async (id: string, updates: Partial<Announcement>) => {
+      try {
+        const { data, error } = await supabase
+          .from('announcements')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "公告更新成功",
+          description: "公告已更新"
+        });
+
+        return {
+          ...data,
+          type: data.type as 'info' | 'warning' | 'success' | 'urgent'
+        } as Announcement;
+      } catch (error: any) {
+        console.error('Error updating announcement:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    deleteAnnouncement: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('announcements')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "公告刪除成功",
+          description: "公告已刪除"
+        });
+      } catch (error: any) {
+        console.error('Error deleting announcement:', error);
+        toast({
+          title: "刪除失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    addGiftCode: async (giftCodeData: Omit<GiftCode, 'id' | 'created_at' | 'sync_version' | 'last_modified'>) => {
+      try {
+        const { data, error } = await supabase
+          .from('gift_codes')
+          .insert([giftCodeData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "禮品碼創建成功",
+          description: `禮品碼 ${giftCodeData.code} 已創建`
+        });
+
+        return data as GiftCode;
+      } catch (error: any) {
+        console.error('Error adding gift code:', error);
+        toast({
+          title: "創建失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    updateGiftCode: async (id: string, updates: Partial<GiftCode>) => {
+      try {
+        const { data, error } = await supabase
+          .from('gift_codes')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "禮品碼更新成功",
+          description: "禮品碼已更新"
+        });
+
+        return data as GiftCode;
+      } catch (error: any) {
+        console.error('Error updating gift code:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
+    deleteGiftCode: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('gift_codes')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "禮品碼刪除成功",
+          description: "禮品碼已刪除"
+        });
+      } catch (error: any) {
+        console.error('Error deleting gift code:', error);
+        toast({
+          title: "刪除失敗",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    },
     loadData
   };
 };
