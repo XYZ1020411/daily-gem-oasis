@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ import {
 
 const AdminPage = () => {
   const { 
-    user, 
+    profile, 
     users, 
     products, 
     exchanges, 
@@ -56,12 +55,20 @@ const AdminPage = () => {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
 
-  if (!user || !user.role || user.role !== 'admin') {
+  console.log('AdminPage - profile:', profile);
+  console.log('AdminPage - profile.role:', profile?.role);
+
+  if (!profile || profile.role !== 'admin') {
     return (
       <div className="text-center py-20">
         <Shield className="w-16 h-16 mx-auto text-red-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2">權限不足</h2>
         <p className="text-muted-foreground">只有管理員才能訪問此頁面</p>
+        <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+          <p className="text-sm">當前用戶信息：</p>
+          <p className="text-sm">用戶名稱: {profile?.username || '未知'}</p>
+          <p className="text-sm">角色: {profile?.role || '未知'}</p>
+        </div>
       </div>
     );
   }
@@ -77,7 +84,7 @@ const AdminPage = () => {
         is_active: true,
         used_by: [],
         expires_at: formData.get('expiresAt') as string,
-        created_by: user?.id
+        created_by: profile?.id
       });
       
       setIsAddingGiftCode(false);
@@ -130,7 +137,7 @@ const AdminPage = () => {
     updateExchange(exchangeId, { 
       status: 'approved',
       processed_date: new Date().toISOString(),
-      processed_by: user.id
+      processed_by: profile.id
     });
     toast({
       title: "審核通過",
@@ -142,7 +149,7 @@ const AdminPage = () => {
     updateExchange(exchangeId, { 
       status: 'rejected',
       processed_date: new Date().toISOString(),
-      processed_by: user.id
+      processed_by: profile.id
     });
     toast({
       title: "已拒絕",
@@ -162,7 +169,7 @@ const AdminPage = () => {
         category: formData.get('category') as string,
         stock: Number(formData.get('stock')),
         is_active: true,
-        created_by: user?.id
+        created_by: profile?.id
       });
       
       setIsAddingProduct(false);
@@ -180,7 +187,7 @@ const AdminPage = () => {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
         type: formData.get('type') as any,
-        created_by: user?.id || '',
+        created_by: profile?.id || '',
         is_active: true
       });
       
