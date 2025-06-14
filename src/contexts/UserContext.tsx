@@ -44,7 +44,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadData
   } = useDatabase();
 
-  const isLoggedIn = !!user;
+  // 修復：確保 isLoggedIn 正確計算
+  const isLoggedIn = !!(user && (profile || isTestMode));
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -70,25 +71,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     fetchSession();
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    // 修復：改善認證狀態監聽
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session);
+      
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
-        fetchProfile(session.user.id).then(() => {
-          toast({
-            title: "登入成功",
-            description: "歡迎回來！",
-          });
-        });
+        try {
+          await fetchProfile(session.user.id);
+          // 確保登入成功後立即更新 loading 狀態
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error fetching profile after sign in:', error);
+          setIsLoading(false);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setIsTestMode(false);
-        toast({
-          title: "登出成功",
-          description: "您已成功登出",
-        });
+        setIsLoading(false);
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -167,16 +172,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data?.user) {
         setUser(data.user);
         await fetchProfile(data.user.id);
+        // 修復：登入成功後不需要手動設置 loading，因為 onAuthStateChange 會處理
       }
     } catch (error: any) {
       console.error('登入錯誤:', error);
-      toast({
-        title: "登入失敗",
-        description: error.message || "請檢查您的用戶名稱和密碼",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // 確保錯誤時重置loading狀態
+      throw error; // 重新拋出錯誤讓組件處理
     }
   };
 
@@ -204,11 +205,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('註冊錯誤:', error);
-      toast({
-        title: "註冊失敗",
-        description: error.message || "註冊時發生錯誤，請重試",
-        variant: "destructive"
-      });
+      setIsLoading(false);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -226,11 +224,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsTestMode(false);
     } catch (error: any) {
       console.error('登出錯誤:', error);
-      toast({
-        title: "登出失敗",
-        description: error.message || "登出時發生錯誤，請重試",
-        variant: "destructive"
-      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -433,6 +427,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(testAccounts[accountType]);
     setUser({ id: testAccounts[accountType].id });
     setIsTestMode(true);
+    setIsLoading(false); // 確保測試模式下loading狀態正確
     
     toast({
       title: "切換成功",
@@ -442,7 +437,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 簽到功能
   const checkIn = () => {
-    if (!profile) return;
+    if (!profile) {
+      toast({
+        title: "錯誤",
+        description: "找不到用戶個人資料",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    if (profile.last_check_in === today) {
+      throw new Error("今日已簽到");
+    }
 
     const points = 100 + (profile.vip_level * 50);
     updatePoints(points, '每日簽到獎勵');
@@ -450,11 +457,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newStreak = (profile.check_in_streak || 0) + 1;
     updateProfile({
       check_in_streak: newStreak,
-      last_check_in: new Date().toISOString()
+      last_check_in: today
     });
   };
 
-  // 禮品碼兌換功能
+  // 福利碼兌換功能
   const redeemGiftCode = (code: string): boolean => {
     const giftCodes: Record<string, number> = {
       'WELCOME100': 100,
@@ -489,33 +496,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users,
     isLoading,
     isLoggedIn,
-    signIn: async (username: string, password: string) => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: `${username}@game.local`,
-          password: password,
-        })
-
-        if (error) {
-          throw error;
-        }
-
-        if (data?.user) {
-          setUser(data.user);
-          await fetchProfile(data.user.id);
-        }
-      } catch (error: any) {
-        console.error('登入錯誤:', error);
-        toast({
-          title: "登入失敗",
-          description: error.message || "請檢查您的用戶名稱和密碼",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
+    signIn,
     signUp: async (username: string, password: string, displayName: string) => {
       setIsLoading(true);
       try {
@@ -540,13 +521,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error: any) {
         console.error('註冊錯誤:', error);
-        toast({
-          title: "註冊失敗",
-          description: error.message || "註冊時發生錯誤，請重試",
-          variant: "destructive"
-        });
-      } finally {
         setIsLoading(false);
+        throw error;
       }
     },
     signOut: async () => {
@@ -561,11 +537,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsTestMode(false);
       } catch (error: any) {
         console.error('登出錯誤:', error);
-        toast({
-          title: "登出失敗",
-          description: error.message || "登出時發生錯誤，請重試",
-          variant: "destructive"
-        });
+        throw error;
       } finally {
         setIsLoading(false);
       }
@@ -687,8 +659,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isTestMode,
     checkIn,
     transactions,
-    redeemGiftCode,
-    createRealAccounts,
+    redeemGiftCode: (code: string): boolean => {
+      const giftCodes: Record<string, number> = {
+        'WELCOME100': 100,
+        'VIP500': 500,
+        'LUCKY1000': 1000
+      };
+
+      if (giftCodes[code]) {
+        updatePoints(giftCodes[code], `禮品碼兌換: ${code}`);
+        return true;
+      }
+      return false;
+    },
+    createRealAccounts: async () => {
+      const accounts = [
+        { email: '001@game.local', password: 'password123', role: 'vip' },
+        { email: 'vip8888@game.local', password: 'vip8888pass', role: 'vip' },
+        { email: '002@game.local', password: 'admin123', role: 'admin' }
+      ];
+
+      // 模擬創建帳號的過程
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      return { accounts };
+    },
     
     // 數據庫相關功能
     products,

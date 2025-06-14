@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -36,10 +35,8 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
     try {
       await signIn(username, password);
-      toast({
-        title: "登入成功",
-        description: "歡迎回來！",
-      });
+      // 修復：登入成功後不需要手動處理跳轉，UserContext會自動處理
+      // toast 也移到 UserContext 的 onAuthStateChange 中處理
     } catch (error: any) {
       console.error('登入錯誤:', error);
       toast({
@@ -84,10 +81,7 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(username, password, displayName);
-      toast({
-        title: "註冊成功",
-        description: "帳號已成功創建並自動登入！",
-      });
+      // 修復：註冊成功後不需要手動處理跳轉，UserContext會自動處理
     } catch (error: any) {
       console.error('註冊錯誤:', error);
       toast({

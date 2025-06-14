@@ -14,6 +14,8 @@ const Index = () => {
   const { isLoggedIn, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState('home');
 
+  console.log('Index component - isLoading:', isLoading, 'isLoggedIn:', isLoggedIn);
+
   // 顯示載入狀態
   if (isLoading) {
     return (
