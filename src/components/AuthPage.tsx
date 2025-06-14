@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,9 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import TestAccountSwitcher from './TestAccountSwitcher';
 import AccountCreator from './AccountCreator';
 import { supabase } from '@/integrations/supabase/client';
+import { useEmailService } from '@/hooks/useEmailService';
 
 const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,13 +24,14 @@ const AuthPage: React.FC = () => {
   const [showAccountCreator, setShowAccountCreator] = useState(false);
   const { signIn, signUp } = useUser();
   const { toast } = useToast();
+  const { sendWelcomeEmail } = useEmailService();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "請填寫完整資訊",
-        description: "請輸入電子郵件和密碼",
+        description: "請輸入用戶名稱和密碼",
         variant: "destructive"
       });
       return;
@@ -35,16 +39,18 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await signIn(email, password);
+      // 將用戶名稱轉換為電子郵件格式進行登入
+      const emailFormat = username.includes('@') ? username : `${username}@game.local`;
+      await signIn(emailFormat, password);
     } catch (error: any) {
       console.error('登入錯誤:', error);
       
-      let errorMessage = "請檢查您的電子郵件和密碼";
+      let errorMessage = "請檢查您的用戶名稱和密碼";
       
       if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
         errorMessage = "系統暫時使用離線模式，請使用預設帳號登入";
       } else if (error.message === '電子郵件或密碼錯誤') {
-        errorMessage = "電子郵件或密碼錯誤，請檢查後重試";
+        errorMessage = "用戶名稱或密碼錯誤，請檢查後重試";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -61,7 +67,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !confirmPassword || !displayName) {
+    if (!username || !email || !password || !confirmPassword || !displayName) {
       toast({
         title: "請填寫完整資訊",
         description: "請輸入所有必填欄位",
@@ -91,6 +97,22 @@ const AuthPage: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(email, password, displayName);
+      
+      // 發送歡迎電子郵件
+      try {
+        await sendWelcomeEmail(email, displayName);
+        toast({
+          title: "註冊成功",
+          description: "歡迎郵件已發送至您的電子郵件地址",
+        });
+      } catch (emailError) {
+        console.error('發送歡迎郵件失敗:', emailError);
+        toast({
+          title: "註冊成功",
+          description: "註冊完成，但歡迎郵件發送失敗",
+          variant: "destructive"
+        });
+      }
     } catch (error: any) {
       console.error('註冊錯誤:', error);
       toast({
@@ -186,15 +208,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">電子郵件</Label>
+                  <Label htmlFor="username">用戶名稱</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="輸入您的電子郵件"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      placeholder="輸入您的用戶名稱"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -255,15 +277,31 @@ const AuthPage: React.FC = () => {
                 <h4 className="font-medium text-blue-800 mb-2">系統提示：</h4>
                 <div className="text-sm text-blue-700 space-y-1">
                   <div className="mb-2">目前使用離線模式，請使用以下預設帳號：</div>
-                  <div>• 電子郵件: <strong>vip001@game.local</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
-                  <div>• 電子郵件: <strong>vip8888@game.local</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
-                  <div>• 電子郵件: <strong>admin002@game.local</strong> 密碼: <strong>002password</strong> (管理員)</div>
+                  <div>• 用戶名稱: <strong>vip001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
+                  <div>• 用戶名稱: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
+                  <div>• 用戶名稱: <strong>admin002</strong> 密碼: <strong>002password</strong> (管理員)</div>
                 </div>
               </div>
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-username">用戶名稱</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="輸入用戶名稱"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">電子郵件</Label>
                   <div className="relative">

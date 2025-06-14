@@ -15,6 +15,11 @@ interface EmailRequest {
   subject: string;
   html: string;
   from?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    type: string;
+  }>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,14 +29,31 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, html, from = "系統通知 <onboarding@resend.dev>" }: EmailRequest = await req.json();
+    const { 
+      to, 
+      subject, 
+      html, 
+      from = "系統通知 <onboarding@resend.dev>", 
+      attachments 
+    }: EmailRequest = await req.json();
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from,
       to: [to],
       subject,
       html,
-    });
+    };
+
+    // 添加附件支援
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments.map(att => ({
+        filename: att.filename,
+        content: att.content,
+        content_type: att.type
+      }));
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Email sent successfully:", emailResponse);
 

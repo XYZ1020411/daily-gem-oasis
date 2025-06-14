@@ -6,6 +6,11 @@ interface EmailData {
   subject: string;
   html: string;
   from?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    type: string;
+  }>;
 }
 
 export const useEmailService = () => {
@@ -79,9 +84,36 @@ export const useEmailService = () => {
     });
   };
 
+  const sendEmailWithAttachment = async (
+    to: string, 
+    subject: string, 
+    content: string, 
+    attachments?: Array<{filename: string, content: string, type: string}>
+  ) => {
+    return sendEmail({
+      to,
+      subject,
+      html: content,
+      attachments
+    });
+  };
+
+  const deleteEmailAttachment = async (attachmentId: string) => {
+    try {
+      // 這裡可以添加刪除附件的邏輯
+      console.log('Deleting attachment:', attachmentId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      throw new Error('刪除附件時發生錯誤');
+    }
+  };
+
   return {
     sendEmail,
     sendWelcomeEmail,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    sendEmailWithAttachment,
+    deleteEmailAttachment
   };
 };
