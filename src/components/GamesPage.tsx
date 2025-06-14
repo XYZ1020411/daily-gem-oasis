@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/contexts/UserContext';
-import { Globe, Gamepad2, Trophy, Users, Target, Dice6, Zap } from 'lucide-react';
+import { Globe, Gamepad2, Trophy, Users, Target, Dice6, Zap, Skull } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ModernWorld2Game from './ModernWorld2Game';
+import DoomsdaySurvivalGame from './DoomsdaySurvivalGame';
 
 const GamesPage: React.FC = () => {
   const { profile, updatePoints } = useUser();
@@ -23,6 +23,17 @@ const GamesPage: React.FC = () => {
       difficulty: '中等',
       reward: '50-200',
       category: '策略',
+      isNew: true,
+      isIndependent: true
+    },
+    {
+      id: 'doomsday-survival',
+      name: '末日生存模擬器',
+      description: '在末日世界中求生，管理資源，對抗威脅！',
+      icon: Skull,
+      difficulty: '困難',
+      reward: '100-300',
+      category: '生存',
       isNew: true,
       isIndependent: true
     },
@@ -67,6 +78,11 @@ const GamesPage: React.FC = () => {
   const playGame = async (gameId: string) => {
     if (gameId === 'modernworld2') {
       setSelectedGame('modernworld2');
+      return;
+    }
+
+    if (gameId === 'doomsday-survival') {
+      setSelectedGame('doomsday-survival');
       return;
     }
 
@@ -130,6 +146,23 @@ const GamesPage: React.FC = () => {
           </Button>
         </div>
         <ModernWorld2Game />
+      </div>
+    );
+  }
+
+  if (selectedGame === 'doomsday-survival') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">末日生存模擬器</h1>
+          <Button 
+            onClick={() => setSelectedGame(null)}
+            variant="outline"
+          >
+            返回遊戲列表
+          </Button>
+        </div>
+        <DoomsdaySurvivalGame />
       </div>
     );
   }
@@ -254,7 +287,7 @@ const GamesPage: React.FC = () => {
             <div>
               <h4 className="font-semibold mb-2">特殊說明</h4>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• 現代世界2為獨立遊戲系統</li>
+                <li>• 現代世界2和末日生存為獨立遊戲系統</li>
                 <li>• 登入用戶可保存遊戲進度</li>
                 <li>• 遊戲結果基於隨機算法</li>
               </ul>

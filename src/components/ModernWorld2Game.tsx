@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -303,7 +304,7 @@ const ModernWorld2Game: React.FC = () => {
     // 檢查資源是否足夠
     const hasEnoughResources = Object.entries(cost).every(([resource, amount]) => {
       const currentAmount = gameState.resources[resource as keyof typeof gameState.resources];
-      return currentAmount >= (amount as number);
+      return currentAmount >= Number(amount);
     });
     
     if (!hasEnoughResources) {
@@ -319,7 +320,7 @@ const ModernWorld2Game: React.FC = () => {
     const newGameState = { ...gameState };
     Object.entries(cost).forEach(([resource, amount]) => {
       const currentAmount = newGameState.resources[resource as keyof typeof newGameState.resources];
-      newGameState.resources[resource as keyof typeof newGameState.resources] = currentAmount - (amount as number);
+      newGameState.resources[resource as keyof typeof newGameState.resources] = currentAmount - Number(amount);
     });
     
     newGameState.construction.push({
