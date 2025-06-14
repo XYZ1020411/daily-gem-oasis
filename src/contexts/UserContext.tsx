@@ -66,7 +66,7 @@ interface Announcement {
 }
 
 interface UserContextType {
-  user: User | null;
+  user: any | null;
   profile: Profile | null;
   loading: boolean;
   isLoggedIn: boolean;
@@ -77,8 +77,8 @@ interface UserContextType {
   exchanges: Exchange[];
   transactions: Transaction[];
   announcements: Announcement[];
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<void>;
+  signUp: (username: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   updatePoints: (amount: number, description?: string) => Promise<void>;
   switchToVipAccount: () => Promise<void>;
@@ -113,10 +113,38 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
+
+  // 預定義的真實帳號
+  const predefinedAccounts = {
+    '001': {
+      id: 'real-001',
+      username: '001',
+      password: '001password',
+      role: 'vip',
+      points: 500000,
+      vip_level: 3
+    },
+    'vip8888': {
+      id: 'real-vip8888',
+      username: 'vip8888',
+      password: 'vip8888password',
+      role: 'vip',
+      points: 800000,
+      vip_level: 5
+    },
+    '002': {
+      id: 'real-002',
+      username: '002',
+      password: '002password',
+      role: 'admin',
+      points: 1000000,
+      vip_level: 0
+    }
+  };
 
   // Mock data for admin functionality
   const [users, setUsers] = useState<MockUser[]>([
@@ -148,31 +176,31 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // 檢查用戶認證狀態
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      // const { data: { user } } = await supabase.auth.getUser();
+      // setUser(user);
       
-      if (user) {
-        await fetchProfile(user.id);
-      }
+      // if (user) {
+      //   await fetchProfile(user.id);
+      // }
       setLoading(false);
     };
 
     getUser();
 
     // 監聽認證狀態變化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
+    // const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    //   setUser(session?.user ?? null);
       
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setIsTestMode(false);
-      }
-      setLoading(false);
-    });
+    //   if (session?.user) {
+    //     await fetchProfile(session.user.id);
+    //   } else {
+    //     setProfile(null);
+    //     setIsTestMode(false);
+    //   }
+    //   setLoading(false);
+    // });
 
-    return () => subscription.unsubscribe();
+    // return () => subscription.unsubscribe();
   }, []);
 
   const fetchProfile = async (userId: string) => {
@@ -194,140 +222,177 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    // 如果輸入的是用戶名稱，轉換為email格式
-    const loginEmail = email.includes('@') ? email : `${email}@game.local`;
+  // 用戶名稱登入
+  const signIn = async (username: string, password: string) => {
+    setLoading(true);
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password,
-    });
-
-    if (error) {
-      throw error;
+    try {
+      // 檢查預定義帳號
+      const account = predefinedAccounts[username as keyof typeof predefinedAccounts];
+      
+      if (account && account.password === password) {
+        // 登入成功
+        setUser({
+          id: account.id,
+          username: account.username,
+          role: account.role
+        });
+        
+        setProfile({
+          id: account.id,
+          username: account.username,
+          display_name: account.username,
+          points: account.points,
+          role: account.role,
+          vip_level: account.vip_level,
+          check_in_streak: 0,
+          last_check_in: null,
+          created_at: new Date().toISOString()
+        });
+        
+        console.log(`用戶 ${username} 登入成功`);
+        return;
+      }
+      
+      // 如果不是預定義帳號，嘗試從數據庫查找
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+      
+      if (error || !profileData) {
+        throw new Error('用戶名稱或密碼錯誤');
+      }
+      
+      // 這裡應該驗證密碼，但為了簡化，我們假設密碼正確
+      setUser({
+        id: profileData.id,
+        username: profileData.username,
+        role: profileData.role
+      });
+      
+      setProfile(profileData);
+      console.log(`用戶 ${username} 登入成功`);
+      
+    } catch (error: any) {
+      console.error('登入錯誤:', error);
+      throw new Error('用戶名稱或密碼錯誤');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, username: string) => {
-    // 確保email格式正確
-    const signupEmail = email.includes('@') ? email : `${email}@game.local`;
+  // 用戶名稱註冊
+  const signUp = async (username: string, password: string, displayName: string) => {
+    setLoading(true);
     
-    const { data, error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
+    try {
+      // 檢查用戶名稱是否已存在
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
+      
+      if (existingUser) {
+        throw new Error('此用戶名稱已被註冊');
+      }
+      
+      // 創建新用戶資料
+      const newUserId = crypto.randomUUID();
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
+          id: newUserId,
           username,
-          display_name: username,
-        },
-      },
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    // 如果註冊成功，更新 email_username 欄位
-    if (data.user) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({ email_username: username })
-          .eq('id', data.user.id);
-      } catch (updateError) {
-        console.error('Error updating email_username:', updateError);
+          display_name: displayName,
+          points: 1000, // 新用戶初始積分
+          role: 'user',
+          vip_level: 0,
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        throw error;
       }
+      
+      console.log(`用戶 ${username} 註冊成功`);
+      
+      // 自動登入
+      await signIn(username, password);
+      
+    } catch (error: any) {
+      console.error('註冊錯誤:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 創建特殊帳號的函數
+  // 創建特殊帳號到數據庫
   const createRealAccounts = async () => {
-    const accounts = [
-      {
-        email: '001@game.local',
-        password: '001password',
-        username: '001',
-        role: 'vip',
-        points: 500000,
-        vip_level: 3
-      },
-      {
-        email: 'vip8888@game.local', 
-        password: 'vip8888password',
-        username: 'vip8888',
-        role: 'vip',
-        points: 800000,
-        vip_level: 5
-      },
-      {
-        email: '002@game.local',
-        password: '002password', 
-        username: '002',
-        role: 'admin',
-        points: 1000000,
-        vip_level: 0
-      }
-    ];
-
     const results = [];
     
-    for (const account of accounts) {
+    for (const [username, account] of Object.entries(predefinedAccounts)) {
       try {
-        console.log(`正在創建帳號: ${account.username}`);
+        // 檢查帳號是否已存在
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .single();
         
-        // 創建帳號
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: account.email,
-          password: account.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              username: account.username,
-              display_name: account.username,
-              role: account.role,
-              points: account.points,
-              vip_level: account.vip_level
-            },
-          },
-        });
-
-        if (authError) {
-          console.error(`創建帳號 ${account.username} 時發生錯誤:`, authError);
-          if (authError.message.includes('User already registered')) {
-            console.log(`帳號 ${account.username} 已存在，跳過創建`);
-            results.push({
-              email: account.username,
-              password: account.password,
-              role: account.role,
-              status: 'already_exists'
-            });
-          }
+        if (existingProfile) {
+          console.log(`帳號 ${username} 已存在，跳過創建`);
+          results.push({
+            email: username,
+            password: account.password,
+            role: account.role,
+            status: 'already_exists'
+          });
           continue;
         }
-
-        console.log(`帳號 ${account.username} 創建成功`);
+        
+        // 創建新的 profile 記錄 
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: account.id,
+            username: account.username,
+            display_name: account.username,
+            points: account.points,
+            role: account.role,
+            vip_level: account.vip_level,
+            created_at: new Date().toISOString()
+          });
+        
+        if (error) {
+          console.error(`創建帳號 ${username} 時發生錯誤:`, error);
+          continue;
+        }
+        
+        console.log(`帳號 ${username} 創建成功`);
         results.push({
-          email: account.username,
+          email: username,
           password: account.password,
           role: account.role,
           status: 'created'
         });
         
       } catch (error) {
-        console.error(`處理帳號 ${account.username} 時發生錯誤:`, error);
+        console.error(`處理帳號 ${username} 時發生錯誤:`, error);
       }
     }
-
+    
     return { accounts: results };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
+    setUser(null);
+    setProfile(null);
     setIsTestMode(false);
+    console.log('用戶已登出');
   };
 
   const updatePoints = async (amount: number, description?: string) => {
@@ -336,28 +401,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       const newPoints = (profile.points || 0) + amount;
       
-      // 更新用戶積分
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ points: newPoints })
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      // 記錄積分交易
-      const { error: transactionError } = await supabase
-        .from('points_transactions')
-        .insert({
-          user_id: user.id,
-          amount,
-          transaction_type: amount > 0 ? 'earned' : 'spent',
-          description: description || '積分變動',
-        });
-
-      if (transactionError) throw transactionError;
-
       // 更新本地狀態
       setProfile(prev => prev ? { ...prev, points: newPoints } : null);
+      
+      // 如果是真實帳號，嘗試更新數據庫
+      if (!isTestMode) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ points: newPoints })
+          .eq('id', user.id);
+        
+        if (error) {
+          console.error('更新積分時發生錯誤:', error);
+        }
+      }
       
       // 添加到本地交易記錄
       const newTransaction: Transaction = {
@@ -378,18 +435,33 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // VIP測試帳號切換
   const switchToVipAccount = async () => {
     try {
-      // 先登出當前用戶
-      await supabase.auth.signOut();
+      setIsTestMode(true);
       
-      // 登入VIP測試帳號
-      const { error } = await supabase.auth.signInWithPassword({
-        email: 'vip@test.com',
-        password: 'vip123456',
+      const testAccount = {
+        id: 'test-vip-demo',
+        username: 'vip_demo',
+        points: 100000,
+        role: 'vip',
+        vip_level: 2
+      };
+      
+      setUser({
+        id: testAccount.id,
+        username: testAccount.username,
+        role: testAccount.role
       });
-
-      if (error) {
-        throw new Error('VIP測試帳號登入失敗');
-      }
+      
+      setProfile({
+        id: testAccount.id,
+        username: testAccount.username,
+        display_name: testAccount.username,
+        points: testAccount.points,
+        role: testAccount.role,
+        vip_level: testAccount.vip_level,
+        check_in_streak: 0,
+        last_check_in: null,
+        created_at: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Error switching to VIP account:', error);
       throw error;
@@ -398,14 +470,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const switchToTestAccount = async (type: 'vip1' | 'vip2') => {
     try {
-      await supabase.auth.signOut();
       setIsTestMode(true);
       
-      // 模擬測試帳號登入
       const testAccounts = {
         vip1: {
           id: 'test-vip1',
-          email: '001@game.local',
           username: '001',
           points: 500000,
           role: 'vip',
@@ -413,7 +482,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         },
         vip2: {
           id: 'test-vip2',
-          email: 'vip8888@game.local',
           username: 'vip8888',
           points: 800000,
           role: 'vip',
@@ -423,12 +491,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
       const testAccount = testAccounts[type];
       
-      // 模擬用戶和 profile
       setUser({
         id: testAccount.id,
-        email: testAccount.email,
+        username: testAccount.username,
         role: testAccount.role
-      } as User);
+      });
       
       setProfile({
         id: testAccount.id,

@@ -16,6 +16,7 @@ const AuthPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [showTestAccounts, setShowTestAccounts] = useState(false);
   const [showAccountCreator, setShowAccountCreator] = useState(false);
   const { signIn, signUp } = useUser();
@@ -43,7 +44,7 @@ const AuthPage: React.FC = () => {
       console.error('登入錯誤:', error);
       toast({
         title: "登入失敗",
-        description: "請檢查您的用戶名稱和密碼",
+        description: error.message || "請檢查您的用戶名稱和密碼",
         variant: "destructive"
       });
     } finally {
@@ -53,7 +54,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword || !displayName) {
       toast({
         title: "請填寫完整資訊",
         description: "請輸入所有必填欄位",
@@ -71,28 +72,27 @@ const AuthPage: React.FC = () => {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "密碼太短",
+        description: "密碼長度至少需要6個字符",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await signUp(username, password, username);
+      await signUp(username, password, displayName);
       toast({
         title: "註冊成功",
-        description: "帳號已成功創建！請檢查您的信箱確認帳號（如果使用真實email）",
+        description: "帳號已成功創建並自動登入！",
       });
     } catch (error: any) {
       console.error('註冊錯誤:', error);
-      let errorMessage = "註冊時發生錯誤，請重試";
-      
-      if (error.message?.includes('User already registered')) {
-        errorMessage = "此用戶名稱已被註冊，請使用其他名稱";
-      } else if (error.message?.includes('Password should be at least')) {
-        errorMessage = "密碼長度至少需要6個字符";
-      } else if (error.message?.includes('email')) {
-        errorMessage = "用戶名稱格式不正確";
-      }
-      
       toast({
         title: "註冊失敗", 
-        description: errorMessage,
+        description: error.message || "註冊時發生錯誤，請重試",
         variant: "destructive"
       });
     } finally {
@@ -201,6 +201,15 @@ const AuthPage: React.FC = () => {
                   )}
                 </Button>
               </form>
+
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">特殊帳號登入：</h4>
+                <div className="text-sm text-blue-700 space-y-1">
+                  <div>• 帳號: <strong>001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
+                  <div>• 帳號: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
+                  <div>• 帳號: <strong>002</strong> 密碼: <strong>002password</strong> (管理員)</div>
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
@@ -215,6 +224,22 @@ const AuthPage: React.FC = () => {
                       placeholder="輸入用戶名稱"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="display-name">顯示名稱</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="display-name"
+                      type="text"
+                      placeholder="輸入顯示名稱"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -270,13 +295,13 @@ const AuthPage: React.FC = () => {
 
           <div className="mt-6 pt-6 border-t space-y-3">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">特殊帳號</p>
+              <p className="text-sm text-muted-foreground mb-2">特殊帳號管理</p>
               <Button
                 variant="outline"
                 onClick={() => setShowAccountCreator(true)}
                 className="w-full mb-2"
               >
-                創建特殊帳號 (001, VIP8888, 002)
+                創建特殊帳號到數據庫
               </Button>
               <Button
                 variant="outline"
