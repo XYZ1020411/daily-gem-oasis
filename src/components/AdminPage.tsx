@@ -33,6 +33,7 @@ const AdminPage = () => {
     products, 
     exchanges, 
     announcements,
+    giftCodes,
     updateUserById,
     deleteUser,
     addProduct,
@@ -41,7 +42,10 @@ const AdminPage = () => {
     updateExchange,
     addAnnouncement,
     updateAnnouncement,
-    deleteAnnouncement
+    deleteAnnouncement,
+    addGiftCode,
+    updateGiftCode,
+    deleteGiftCode
   } = useUser();
   const { toast } = useToast();
   
@@ -68,48 +72,47 @@ const AdminPage = () => {
     );
   }
 
-  const handleAddGiftCode = (e: React.FormEvent) => {
+  const handleAddGiftCode = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
-    const newGiftCode = {
-      id: Date.now().toString(),
-      code: formData.get('code') as string,
-      points: Number(formData.get('points')),
-      isActive: true,
-      usedBy: [],
-      createdAt: new Date().toISOString().split('T')[0],
-      expiresAt: formData.get('expiresAt') as string
-    };
-    
-    setGiftCodes(prev => [...prev, newGiftCode]);
-    setIsAddingGiftCode(false);
-    toast({
-      title: "新增成功",
-      description: "禮品碼已新增"
-    });
+    try {
+      await addGiftCode({
+        code: formData.get('code') as string,
+        points: Number(formData.get('points')),
+        is_active: true,
+        used_by: [],
+        expires_at: formData.get('expiresAt') as string,
+        created_by: user?.id
+      });
+      
+      setIsAddingGiftCode(false);
+    } catch (error) {
+      // Error already handled in useDatabase hook
+    }
   };
 
-  const handleToggleGiftCode = (codeId: string) => {
-    setGiftCodes(prev => 
-      prev.map(code => 
-        code.id === codeId 
-          ? { ...code, isActive: !code.isActive }
-          : code
-      )
-    );
-    toast({
-      title: "更新成功",
-      description: "禮品碼狀態已更新"
-    });
+  const handleToggleGiftCode = async (codeId: string) => {
+    const giftCode = giftCodes.find(code => code.id === codeId);
+    if (giftCode) {
+      try {
+        await updateGiftCode(codeId, { 
+          is_active: !giftCode.is_active 
+        });
+      } catch (error) {
+        // Error already handled in useDatabase hook
+      }
+    }
   };
 
-  const handleDeleteGiftCode = (codeId: string) => {
-    setGiftCodes(prev => prev.filter(code => code.id !== codeId));
-    toast({
-      title: "刪除成功",
-      description: "禮品碼已刪除"
-    });
+  const handleDeleteGiftCode = async (codeId: string) => {
+    if (confirm('確定要刪除此禮品碼嗎？')) {
+      try {
+        await deleteGiftCode(codeId);
+      } catch (error) {
+        // Error already handled in useDatabase hook
+      }
+    }
   };
 
   const tabs = [
@@ -161,43 +164,44 @@ const AdminPage = () => {
     });
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
-    addProduct({
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      price: Number(formData.get('price')),
-      category: formData.get('category') as string,
-      stock: Number(formData.get('stock')),
-      isActive: true
-    });
-    
-    setIsAddingProduct(false);
-    toast({
-      title: "新增成功",
-      description: "商品已新增到商城"
-    });
+    try {
+      await addProduct({
+        name: formData.get('name') as string,
+        description: formData.get('description') as string,
+        price: Number(formData.get('price')),
+        category: formData.get('category') as string,
+        stock: Number(formData.get('stock')),
+        is_active: true,
+        created_by: user?.id
+      });
+      
+      setIsAddingProduct(false);
+    } catch (error) {
+      // Error already handled in useDatabase hook
+    }
   };
 
-  const handleAddAnnouncement = (e: React.FormEvent) => {
+  const handleAddAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
-    addAnnouncement({
-      title: formData.get('title') as string,
-      content: formData.get('content') as string,
-      type: formData.get('type') as any,
-      createdBy: user.id,
-      isActive: true
-    });
-    
-    setIsAddingAnnouncement(false);
-    toast({
-      title: "發布成功",
-      description: "公告已發布"
-    });
+    try {
+      await addAnnouncement({
+        title: formData.get('title') as string,
+        content: formData.get('content') as string,
+        type: formData.get('type') as any,
+        created_by: user?.id || '',
+        is_active: true
+      });
+      
+      setIsAddingAnnouncement(false);
+    } catch (error) {
+      // Error already handled in useDatabase hook
+    }
   };
 
   const renderUsersTab = () => (
@@ -584,8 +588,8 @@ const AdminPage = () => {
                     <code className="bg-gray-100 px-2 py-1 rounded font-mono text-lg">
                       {giftCode.code}
                     </code>
-                    <Badge className={giftCode.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                      {giftCode.isActive ? '啟用' : '停用'}
+                    <Badge className={giftCode.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {giftCode.is_active ? '啟用' : '停用'}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -596,29 +600,25 @@ const AdminPage = () => {
                       <span className="font-medium">使用次數:</span> {giftCode.usedBy.length}
                     </div>
                     <div>
-                      <span className="font-medium">創建日期:</span> {giftCode.createdAt}
+                      <span className="font-medium">創建日期:</span> {new Date(giftCode.createdAt).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">到期日期:</span> {giftCode.expiresAt}
+                      <span className="font-medium">到期日期:</span> {new Date(giftCode.expiresAt).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
                 <div className="flex space-x-2">
                   <Button 
                     size="sm" 
-                    variant={giftCode.isActive ? "outline" : "default"}
+                    variant={giftCode.is_active ? "outline" : "default"}
                     onClick={() => handleToggleGiftCode(giftCode.id)}
                   >
-                    {giftCode.isActive ? '停用' : '啟用'}
+                    {giftCode.is_active ? '停用' : '啟用'}
                   </Button>
                   <Button 
                     size="sm" 
                     variant="destructive"
-                    onClick={() => {
-                      if (confirm('確定要刪除此禮品碼嗎？')) {
-                        handleDeleteGiftCode(giftCode.id);
-                      }
-                    }}
+                    onClick={() => handleDeleteGiftCode(giftCode.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

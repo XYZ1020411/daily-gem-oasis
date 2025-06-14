@@ -27,12 +27,12 @@ const ShopPage = () => {
   const categories = ['全部', '電子產品', '餐飲券', '購物券'];
 
   const filteredProducts = selectedCategory === '全部' 
-    ? products.filter((p: any) => p.isActive)
-    : products.filter((p: any) => p.isActive && p.category === selectedCategory);
+    ? products.filter((p: any) => p.is_active)
+    : products.filter((p: any) => p.is_active && p.category === selectedCategory);
 
-  const userExchanges = exchanges.filter((e: any) => e.userId === user?.id);
+  const userExchanges = exchanges.filter((e: any) => e.user_id === user?.id);
 
-  const handleExchange = (product: any) => {
+  const handleExchange = async (product: any) => {
     if (!user || !profile) return;
 
     if ((profile.points || 0) < product.price) {
@@ -53,22 +53,26 @@ const ShopPage = () => {
       return;
     }
 
-    // 扣除積分
-    updatePoints(-product.price, `兌換商品: ${product.name}`);
+    try {
+      // 扣除積分
+      updatePoints(-product.price, `兌換商品: ${product.name}`);
 
-    // 添加兌換記錄
-    addExchange({
-      userId: user.id,
-      productId: product.id,
-      quantity: 1,
-      totalPrice: product.price,
-      status: 'pending'
-    });
+      // 添加兌換記錄
+      await addExchange({
+        user_id: user.id,
+        product_id: product.id,
+        quantity: 1,
+        total_price: product.price,
+        status: 'pending'
+      });
 
-    toast({
-      title: "兌換成功！",
-      description: `已成功兌換 ${product.name}，請等待管理員處理`,
-    });
+      toast({
+        title: "兌換成功！",
+        description: `已成功兌換 ${product.name}，請等待管理員處理`,
+      });
+    } catch (error) {
+      // Error already handled in useDatabase hook
+    }
   };
 
   const getProductIcon = (category: string) => {
@@ -219,7 +223,7 @@ const ShopPage = () => {
           {userExchanges.length > 0 ? (
             <div className="space-y-3">
               {userExchanges.slice(0, 5).map((exchange: any) => {
-                const product = products.find((p: any) => p.id === exchange.productId);
+                const product = products.find((p: any) => p.id === exchange.product_id);
                 return (
                   <div key={exchange.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
@@ -227,19 +231,19 @@ const ShopPage = () => {
                       <div>
                         <p className="font-medium">{product?.name || '未知商品'}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(exchange.requestDate).toLocaleString('zh-TW')}
+                          {new Date(exchange.request_date).toLocaleString('zh-TW')}
                         </p>
                       </div>
                     </div>
                     <div className="text-right space-y-1">
                       <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-yellow-500" />
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          待處理
+                        {getStatusIcon(exchange.status)}
+                        <Badge className={getStatusColor(exchange.status)}>
+                          {getStatusText(exchange.status)}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {exchange.totalPrice} 積分
+                        {exchange.total_price} 積分
                       </p>
                     </div>
                   </div>

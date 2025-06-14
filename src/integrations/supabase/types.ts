@@ -39,6 +39,50 @@ export type Database = {
         }
         Relationships: []
       }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          last_modified: string | null
+          sync_version: number | null
+          title: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          sync_version?: number | null
+          title: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          sync_version?: number | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           capital: string | null
@@ -113,6 +157,70 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      exchanges: {
+        Row: {
+          id: string
+          last_modified: string | null
+          processed_by: string | null
+          processed_date: string | null
+          product_id: string
+          quantity: number
+          request_date: string
+          status: string
+          sync_version: number | null
+          total_price: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_modified?: string | null
+          processed_by?: string | null
+          processed_date?: string | null
+          product_id: string
+          quantity?: number
+          request_date?: string
+          status?: string
+          sync_version?: number | null
+          total_price: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_modified?: string | null
+          processed_by?: string | null
+          processed_date?: string | null
+          product_id?: string
+          quantity?: number
+          request_date?: string
+          status?: string
+          sync_version?: number | null
+          total_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchanges_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchanges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_session_participants: {
         Row: {
@@ -220,6 +328,53 @@ export type Database = {
           },
         ]
       }
+      gift_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_active: boolean
+          last_modified: string | null
+          points: number
+          sync_version: number | null
+          used_by: string[] | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          points: number
+          sync_version?: number | null
+          used_by?: string[] | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          points?: number
+          sync_version?: number | null
+          used_by?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_actions_mw2: {
         Row: {
           action_data: Json
@@ -284,6 +439,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_modified: string | null
+          name: string
+          price: number
+          stock: number
+          sync_version: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          name: string
+          price: number
+          stock?: number
+          sync_version?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_modified?: string | null
+          name?: string
+          price?: number
+          stock?: number
+          sync_version?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
