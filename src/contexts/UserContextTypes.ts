@@ -24,8 +24,8 @@ export interface UserContextType {
   users: User[];
   isLoading: boolean;
   isLoggedIn: boolean;
-  signIn: (username: string, password: string) => Promise<void>;
-  signUp: (username: string, password: string, displayName: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => void;
   updateUserById: (userId: string, updates: Partial<User>) => void;

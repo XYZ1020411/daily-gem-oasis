@@ -158,29 +158,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 特殊處理：當 Supabase 電子郵件登入被禁用時，使用預設帳號
-  const handleSpecialLogin = async (username: string, password: string) => {
-    // 預設的管理員帳號
+  const handleSpecialLogin = async (email: string, password: string) => {
+    // 預設的管理員帳號 - 改為電子郵件格式
     const specialAccounts = {
-      '001': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
-      'vip8888': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
-      '002': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
+      'vip001@game.local': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
+      'vip8888@game.local': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
+      'admin002@game.local': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
     };
 
-    const account = specialAccounts[username as keyof typeof specialAccounts];
+    const account = specialAccounts[email as keyof typeof specialAccounts];
     if (account && account.password === password) {
       // 創建模擬用戶
       const mockUser = {
-        id: `special-${username}`,
-        email: `${username}@game.local`,
+        id: `special-${email.split('@')[0]}`,
+        email: email,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
       const mockProfile: User = {
         id: mockUser.id,
-        username: username,
+        username: email.split('@')[0],
         display_name: account.display_name,
-        email_username: username,
+        email_username: email.split('@')[0],
         role: account.role,
         points: account.points,
         vip_level: account.vip_level,
@@ -204,22 +204,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    throw new Error("用戶名或密碼錯誤");
+    throw new Error("電子郵件或密碼錯誤");
   };
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       // 首先嘗試正常的 Supabase 登入
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${username}@game.local`,
+        email: email,
         password: password,
       });
 
       if (error) {
         // 如果是電子郵件登入被禁用的錯誤，使用特殊處理
         if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
-          await handleSpecialLogin(username, password);
+          await handleSpecialLogin(email, password);
           return;
         }
         throw error;
@@ -237,15 +237,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (username: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: `${username}@game.local`,
+        email: email,
         password: password,
         options: {
           data: {
-            username: username,
+            username: email.split('@')[0],
             display_name: displayName,
           }
         }
@@ -493,9 +493,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const testAccounts = {
       vip1: {
         id: 'test-vip1',
-        username: '001',
+        username: 'vip001',
         display_name: 'VIP會員001',
-        email_username: '001',
+        email_username: 'vip001',
         role: 'vip' as const,
         points: 500000,
         vip_level: 3,
@@ -576,9 +576,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 創建真實帳號功能
   const createRealAccounts = async () => {
     const accounts = [
-      { email: '001@game.local', password: 'password123', role: 'vip' },
-      { email: 'vip8888@game.local', password: 'vip8888pass', role: 'vip' },
-      { email: '002@game.local', password: 'admin123', role: 'admin' }
+      { email: 'vip001@game.local', password: '001password', role: 'vip' },
+      { email: 'vip8888@game.local', password: 'vip8888password', role: 'vip' },
+      { email: 'admin002@game.local', password: '002password', role: 'admin' }
     ];
 
     // 模擬創建帳號的過程

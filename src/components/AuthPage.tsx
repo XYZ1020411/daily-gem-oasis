@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { Loader2, User, Lock } from 'lucide-react';
+import { Loader2, User, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TestAccountSwitcher from './TestAccountSwitcher';
 import AccountCreator from './AccountCreator';
 
 const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -24,10 +24,10 @@ const AuthPage: React.FC = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         title: "請填寫完整資訊",
-        description: "請輸入用戶名稱和密碼",
+        description: "請輸入電子郵件和密碼",
         variant: "destructive"
       });
       return;
@@ -35,19 +35,19 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await signIn(username, password);
+      await signIn(email, password);
       // 修復：登入成功後不需要手動處理跳轉，UserContext會自動處理
       // toast 也移到 UserContext 的 onAuthStateChange 中處理
     } catch (error: any) {
       console.error('登入錯誤:', error);
       
       // 改善錯誤信息顯示
-      let errorMessage = "請檢查您的用戶名稱和密碼";
+      let errorMessage = "請檢查您的電子郵件和密碼";
       
       if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
         errorMessage = "系統暫時使用離線模式，請使用預設帳號登入";
-      } else if (error.message === '用戶名或密碼錯誤') {
-        errorMessage = "用戶名或密碼錯誤，請檢查後重試";
+      } else if (error.message === '電子郵件或密碼錯誤') {
+        errorMessage = "電子郵件或密碼錯誤，請檢查後重試";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -64,7 +64,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password || !confirmPassword || !displayName) {
+    if (!email || !password || !confirmPassword || !displayName) {
       toast({
         title: "請填寫完整資訊",
         description: "請輸入所有必填欄位",
@@ -93,7 +93,7 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await signUp(username, password, displayName);
+      await signUp(email, password, displayName);
       // 修復：註冊成功後不需要手動處理跳轉，UserContext會自動處理
     } catch (error: any) {
       console.error('註冊錯誤:', error);
@@ -166,15 +166,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">用戶名稱</Label>
+                  <Label htmlFor="email">電子郵件</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="username"
-                      type="text"
-                      placeholder="輸入您的用戶名稱"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      id="email"
+                      type="email"
+                      placeholder="輸入您的電子郵件"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -213,9 +213,9 @@ const AuthPage: React.FC = () => {
                 <h4 className="font-medium text-blue-800 mb-2">系統提示：</h4>
                 <div className="text-sm text-blue-700 space-y-1">
                   <div className="mb-2">目前使用離線模式，請使用以下預設帳號：</div>
-                  <div>• 帳號: <strong>001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
-                  <div>• 帳號: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
-                  <div>• 帳號: <strong>002</strong> 密碼: <strong>002password</strong> (管理員)</div>
+                  <div>• 電子郵件: <strong>vip001@game.local</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
+                  <div>• 電子郵件: <strong>vip8888@game.local</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
+                  <div>• 電子郵件: <strong>admin002@game.local</strong> 密碼: <strong>002password</strong> (管理員)</div>
                 </div>
               </div>
             </TabsContent>
@@ -223,15 +223,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-username">用戶名稱</Label>
+                  <Label htmlFor="signup-email">電子郵件</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="signup-username"
-                      type="text"
-                      placeholder="輸入用戶名稱"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      id="signup-email"
+                      type="email"
+                      placeholder="輸入電子郵件"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
