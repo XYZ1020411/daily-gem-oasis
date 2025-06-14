@@ -157,15 +157,71 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 特殊處理：當 Supabase 電子郵件登入被禁用時，使用預設帳號
+  const handleSpecialLogin = async (username: string, password: string) => {
+    // 預設的管理員帳號
+    const specialAccounts = {
+      '001': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
+      'vip8888': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
+      '002': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
+    };
+
+    const account = specialAccounts[username as keyof typeof specialAccounts];
+    if (account && account.password === password) {
+      // 創建模擬用戶
+      const mockUser = {
+        id: `special-${username}`,
+        email: `${username}@game.local`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const mockProfile: User = {
+        id: mockUser.id,
+        username: username,
+        display_name: account.display_name,
+        email_username: username,
+        role: account.role,
+        points: account.points,
+        vip_level: account.vip_level,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        check_in_streak: 15,
+        last_check_in: new Date().toISOString(),
+        join_date: new Date().toISOString()
+      };
+
+      setUser(mockUser);
+      setProfile(mockProfile);
+      setIsTestMode(true);
+      setIsLoading(false);
+
+      toast({
+        title: "登入成功",
+        description: `歡迎回來，${account.display_name}！`,
+      });
+
+      return;
+    }
+
+    throw new Error("用戶名或密碼錯誤");
+  };
+
   const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
+      // 首先嘗試正常的 Supabase 登入
       const { data, error } = await supabase.auth.signInWithPassword({
         email: `${username}@game.local`,
         password: password,
-      })
+      });
 
       if (error) {
+        // 如果是電子郵件登入被禁用的錯誤，使用特殊處理
+        if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
+          await handleSpecialLogin(username, password);
+          return;
+        }
         throw error;
       }
 
@@ -215,6 +271,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setIsLoading(true);
     try {
+      // 如果是測試模式，直接清除狀態
+      if (isTestMode) {
+        setUser(null);
+        setProfile(null);
+        setIsTestMode(false);
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
@@ -236,6 +301,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "錯誤",
         description: "找不到用戶個人資料",
         variant: "destructive"
+      });
+      return;
+    }
+
+    // 如果是測試模式，直接更新本地狀態
+    if (isTestMode) {
+      setProfile(prev => prev ? { ...prev, ...updates } : prev);
+      toast({
+        title: "更新成功",
+        description: "您的個人資料已成功更新",
       });
       return;
     }
@@ -340,6 +415,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "錯誤",
         description: "找不到用戶個人資料",
         variant: "destructive"
+      });
+      return;
+    }
+
+    // 如果是測試模式，直接更新本地狀態
+    if (isTestMode) {
+      setProfile(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
+      
+      // 添加交易記錄
+      const transaction = {
+        id: Date.now().toString(),
+        userId: profile.id,
+        amount,
+        description,
+        timestamp: new Date().toISOString(),
+        type: amount > 0 ? 'earn' : 'spend'
+      };
+      setTransactions(prev => [transaction, ...prev]);
+
+      toast({
+        title: "積分更新",
+        description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
       });
       return;
     }
@@ -497,193 +594,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     isLoggedIn,
     signIn,
-    signUp: async (username: string, password: string, displayName: string) => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase.auth.signUp({
-          email: `${username}@game.local`,
-          password: password,
-          options: {
-            data: {
-              username: username,
-              display_name: displayName,
-            }
-          }
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data?.user) {
-          setUser(data.user);
-          await fetchProfile(data.user.id);
-        }
-      } catch (error: any) {
-        console.error('註冊錯誤:', error);
-        setIsLoading(false);
-        throw error;
-      }
-    },
-    signOut: async () => {
-      setIsLoading(true);
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          throw error;
-        }
-        setUser(null);
-        setProfile(null);
-        setIsTestMode(false);
-      } catch (error: any) {
-        console.error('登出錯誤:', error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
+    signUp,
+    signOut,
     updateProfile,
-    updateUserById: async (userId: string, updates: Partial<UserContextType['profile']>) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', userId)
-          .select()
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        setUsers(prevUsers => {
-          return prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u);
-        });
-
-        toast({
-          title: "更新成功",
-          description: "用戶資料已成功更新",
-        });
-      } catch (error: any) {
-        console.error('更新用戶資料錯誤:', error);
-        toast({
-          title: "更新失敗",
-          description: error.message || "更新用戶資料時發生錯誤，請重試",
-          variant: "destructive"
-        });
-      }
-    },
-    deleteUser: async (userId: string) => {
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', userId);
-
-        if (error) {
-          throw error;
-        }
-
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-
-        toast({
-          title: "刪除成功",
-          description: "用戶已成功刪除",
-        });
-      } catch (error: any) {
-        console.error('刪除用戶錯誤:', error);
-        toast({
-          title: "刪除失敗",
-          description: error.message || "刪除用戶時發生錯誤，請重試",
-          variant: "destructive"
-        });
-      }
-    },
-    updatePoints: async (amount: number, description: string) => {
-      if (!profile) {
-        toast({
-          title: "錯誤",
-          description: "找不到用戶個人資料",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .update({ points: (profile.points || 0) + amount })
-          .eq('id', profile.id)
-          .select()
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        const typedProfile = {
-          ...data,
-          role: data.role as 'admin' | 'vip' | 'user'
-        } as User;
-
-        setProfile(typedProfile);
-        setUsers(prevUsers => {
-          return prevUsers.map(u => u.id === profile.id ? { ...u, points: (u.points || 0) + amount } : u);
-        });
-
-        // 添加交易記錄
-        const transaction = {
-          id: Date.now().toString(),
-          userId: profile.id,
-          amount,
-          description,
-          timestamp: new Date().toISOString(),
-          type: amount > 0 ? 'earn' : 'spend'
-        };
-        setTransactions(prev => [transaction, ...prev]);
-
-        toast({
-          title: "積分更新",
-          description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
-        });
-      } catch (error: any) {
-        console.error('更新積分錯誤:', error);
-        toast({
-          title: "更新失敗",
-          description: error.message || "更新積分時發生錯誤，請重試",
-          variant: "destructive"
-        });
-      }
-    },
+    updateUserById,
+    deleteUser,
+    updatePoints,
     switchToTestAccount,
     isTestMode,
     checkIn,
     transactions,
-    redeemGiftCode: (code: string): boolean => {
-      const giftCodes: Record<string, number> = {
-        'WELCOME100': 100,
-        'VIP500': 500,
-        'LUCKY1000': 1000
-      };
-
-      if (giftCodes[code]) {
-        updatePoints(giftCodes[code], `禮品碼兌換: ${code}`);
-        return true;
-      }
-      return false;
-    },
-    createRealAccounts: async () => {
-      const accounts = [
-        { email: '001@game.local', password: 'password123', role: 'vip' },
-        { email: 'vip8888@game.local', password: 'vip8888pass', role: 'vip' },
-        { email: '002@game.local', password: 'admin123', role: 'admin' }
-      ];
-
-      // 模擬創建帳號的過程
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      return { accounts };
-    },
+    redeemGiftCode,
+    createRealAccounts,
     
     // 數據庫相關功能
     products,

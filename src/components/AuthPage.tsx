@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -39,9 +40,21 @@ const AuthPage: React.FC = () => {
       // toast 也移到 UserContext 的 onAuthStateChange 中處理
     } catch (error: any) {
       console.error('登入錯誤:', error);
+      
+      // 改善錯誤信息顯示
+      let errorMessage = "請檢查您的用戶名稱和密碼";
+      
+      if (error.message === 'Email logins are disabled' || error.code === 'email_provider_disabled') {
+        errorMessage = "系統暫時使用離線模式，請使用預設帳號登入";
+      } else if (error.message === '用戶名或密碼錯誤') {
+        errorMessage = "用戶名或密碼錯誤，請檢查後重試";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "登入失敗",
-        description: error.message || "請檢查您的用戶名稱和密碼",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -197,8 +210,9 @@ const AuthPage: React.FC = () => {
               </form>
 
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-800 mb-2">特殊帳號登入：</h4>
+                <h4 className="font-medium text-blue-800 mb-2">系統提示：</h4>
                 <div className="text-sm text-blue-700 space-y-1">
+                  <div className="mb-2">目前使用離線模式，請使用以下預設帳號：</div>
                   <div>• 帳號: <strong>001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
                   <div>• 帳號: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
                   <div>• 帳號: <strong>002</strong> 密碼: <strong>002password</strong> (管理員)</div>
