@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,16 +54,9 @@ const AdminPage = () => {
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  
-  // 禮品碼管理狀態
-  const [giftCodes, setGiftCodes] = useState([
-    { id: '1', code: 'WELCOME2024', points: 100, isActive: true, usedBy: [], createdAt: '2024-01-01', expiresAt: '2024-12-31' },
-    { id: '2', code: 'BONUS500', points: 500, isActive: true, usedBy: ['user1'], createdAt: '2024-01-15', expiresAt: '2024-06-30' },
-    { id: '3', code: 'EXPIRED123', points: 50, isActive: false, usedBy: [], createdAt: '2024-01-01', expiresAt: '2024-01-31' }
-  ]);
   const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
 
-  if (!user || user.role !== 'admin') {
+  if (!user || !user.role || user.role !== 'admin') {
     return (
       <div className="text-center py-20">
         <Shield className="w-16 h-16 mx-auto text-red-500 mb-4" />
@@ -132,19 +126,11 @@ const AdminPage = () => {
     });
   };
 
-  const handleUpdateUserStatus = (userId: string, newStatus: string) => {
-    updateUserById(userId, { status: newStatus as any });
-    toast({
-      title: "更新成功",
-      description: "用戶狀態已更新"
-    });
-  };
-
   const handleApproveExchange = (exchangeId: string) => {
     updateExchange(exchangeId, { 
       status: 'approved',
-      processedDate: new Date().toISOString(),
-      processedBy: user.id
+      processed_date: new Date().toISOString(),
+      processed_by: user.id
     });
     toast({
       title: "審核通過",
@@ -155,8 +141,8 @@ const AdminPage = () => {
   const handleRejectExchange = (exchangeId: string) => {
     updateExchange(exchangeId, { 
       status: 'rejected',
-      processedDate: new Date().toISOString(),
-      processedBy: user.id
+      processed_date: new Date().toISOString(),
+      processed_by: user.id
     });
     toast({
       title: "已拒絕",
@@ -223,7 +209,7 @@ const AdminPage = () => {
                     {u.role === 'user' && <UserCheck className="w-5 h-5 text-blue-500" />}
                     <div>
                       <p className="font-medium">{u.username}</p>
-                      <p className="text-sm text-muted-foreground">{u.email}</p>
+                      <p className="text-sm text-muted-foreground">{u.email_username}</p>
                     </div>
                   </div>
                   <div className="text-center">
@@ -241,16 +227,6 @@ const AdminPage = () => {
                     <option value="user">普通會員</option>
                     <option value="vip">VIP會員</option>
                     <option value="admin">管理員</option>
-                  </select>
-                  
-                  <select 
-                    value={u.status} 
-                    onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}
-                    className="text-sm border rounded px-2 py-1"
-                  >
-                    <option value="active">正常</option>
-                    <option value="suspended">停用</option>
-                    <option value="inactive">未激活</option>
                   </select>
                   
                   <Button 
@@ -376,8 +352,8 @@ const AdminPage = () => {
       
       <div className="space-y-3">
         {exchanges.map((exchange) => {
-          const exchangeUser = users.find(u => u.id === exchange.userId);
-          const product = products.find(p => p.id === exchange.productId);
+          const exchangeUser = users.find(u => u.id === exchange.user_id);
+          const product = products.find(p => p.id === exchange.product_id);
           
           return (
             <Card key={exchange.id}>
@@ -389,10 +365,10 @@ const AdminPage = () => {
                       兌換商品: {product?.name} x{exchange.quantity}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      總價: {exchange.totalPrice} 積分
+                      總價: {exchange.total_price} 積分
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      申請時間: {new Date(exchange.requestDate).toLocaleString('zh-TW')}
+                      申請時間: {new Date(exchange.request_date).toLocaleString('zh-TW')}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -501,7 +477,7 @@ const AdminPage = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{announcement.content}</p>
                   <p className="text-xs text-muted-foreground">
-                    發布時間: {new Date(announcement.createdAt).toLocaleString('zh-TW')}
+                    發布時間: {new Date(announcement.created_at).toLocaleString('zh-TW')}
                   </p>
                 </div>
                 <div className="flex space-x-2">
@@ -597,13 +573,13 @@ const AdminPage = () => {
                       <span className="font-medium">積分價值:</span> {giftCode.points}
                     </div>
                     <div>
-                      <span className="font-medium">使用次數:</span> {giftCode.usedBy.length}
+                      <span className="font-medium">使用次數:</span> {giftCode.used_by.length}
                     </div>
                     <div>
-                      <span className="font-medium">創建日期:</span> {new Date(giftCode.createdAt).toLocaleDateString()}
+                      <span className="font-medium">創建日期:</span> {new Date(giftCode.created_at).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">到期日期:</span> {new Date(giftCode.expiresAt).toLocaleDateString()}
+                      <span className="font-medium">到期日期:</span> {new Date(giftCode.expires_at).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
@@ -634,7 +610,6 @@ const AdminPage = () => {
   const renderStatsTab = () => {
     const totalUsers = users.length;
     const vipUsers = users.filter(u => u.role === 'vip').length;
-    const activeUsers = users.filter(u => u.status === 'active').length;
     const totalExchanges = exchanges.length;
     const pendingExchanges = exchanges.filter(e => e.status === 'pending').length;
 
@@ -670,10 +645,10 @@ const AdminPage = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
-                <UserCheck className="w-8 h-8 text-green-500" />
+                <Gift className="w-8 h-8 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold">{activeUsers}</p>
-                  <p className="text-sm text-muted-foreground">活躍用戶</p>
+                  <p className="text-2xl font-bold">{totalExchanges}</p>
+                  <p className="text-sm text-muted-foreground">總兌換數</p>
                 </div>
               </div>
             </CardContent>
@@ -682,10 +657,10 @@ const AdminPage = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
-                <Gift className="w-8 h-8 text-purple-500" />
+                <MessageSquare className="w-8 h-8 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold">{totalExchanges}</p>
-                  <p className="text-sm text-muted-foreground">總兌換數</p>
+                  <p className="text-2xl font-bold">{pendingExchanges}</p>
+                  <p className="text-sm text-muted-foreground">待處理</p>
                 </div>
               </div>
             </CardContent>

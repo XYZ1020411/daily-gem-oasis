@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserContextType['profile']>(null);
   const [users, setUsers] = useState<UserContextType['users']>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const { toast } = useToast();
 
   // 使用新的數據庫 hook
@@ -78,6 +81,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
+        setIsTestMode(false);
         toast({
           title: "登出成功",
           description: "您已成功登出",
@@ -206,6 +210,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setUser(null);
       setProfile(null);
+      setIsTestMode(false);
     } catch (error: any) {
       console.error('登出錯誤:', error);
       toast({
@@ -344,6 +349,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return prevUsers.map(u => u.id === profile.id ? { ...u, points: (u.points || 0) + amount } : u);
       });
 
+      // 添加交易記錄
+      const transaction = {
+        id: Date.now().toString(),
+        userId: profile.id,
+        amount,
+        description,
+        timestamp: new Date().toISOString(),
+        type: amount > 0 ? 'earn' : 'spend'
+      };
+      setTransactions(prev => [transaction, ...prev]);
+
       toast({
         title: "積分更新",
         description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
@@ -358,6 +374,92 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 測試帳號切換功能
+  const switchToTestAccount = (accountType: 'vip1' | 'vip2') => {
+    const testAccounts = {
+      vip1: {
+        id: 'test-vip1',
+        username: '001',
+        display_name: 'VIP會員001',
+        email_username: '001',
+        role: 'vip' as const,
+        points: 500000,
+        vip_level: 3,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        check_in_streak: 15,
+        last_check_in: new Date().toISOString(),
+        join_date: new Date().toISOString()
+      },
+      vip2: {
+        id: 'test-vip2',
+        username: 'vip8888',
+        display_name: 'VIP會員8888',
+        email_username: 'vip8888',
+        role: 'vip' as const,
+        points: 800000,
+        vip_level: 5,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        check_in_streak: 30,
+        last_check_in: new Date().toISOString(),
+        join_date: new Date().toISOString()
+      }
+    };
+
+    setProfile(testAccounts[accountType]);
+    setUser({ id: testAccounts[accountType].id });
+    setIsTestMode(true);
+    
+    toast({
+      title: "切換成功",
+      description: `已切換到測試帳號 ${testAccounts[accountType].username}`,
+    });
+  };
+
+  // 簽到功能
+  const checkIn = () => {
+    if (!profile) return;
+
+    const points = 100 + (profile.vip_level * 50);
+    updatePoints(points, '每日簽到獎勵');
+    
+    const newStreak = (profile.check_in_streak || 0) + 1;
+    updateProfile({
+      check_in_streak: newStreak,
+      last_check_in: new Date().toISOString()
+    });
+  };
+
+  // 禮品碼兌換功能
+  const redeemGiftCode = (code: string): boolean => {
+    const giftCodes: Record<string, number> = {
+      'WELCOME100': 100,
+      'VIP500': 500,
+      'LUCKY1000': 1000
+    };
+
+    if (giftCodes[code]) {
+      updatePoints(giftCodes[code], `禮品碼兌換: ${code}`);
+      return true;
+    }
+    return false;
+  };
+
+  // 創建真實帳號功能
+  const createRealAccounts = async () => {
+    const accounts = [
+      { email: '001@game.local', password: 'password123', role: 'vip' },
+      { email: 'vip8888@game.local', password: 'vip8888pass', role: 'vip' },
+      { email: '002@game.local', password: 'admin123', role: 'admin' }
+    ];
+
+    // 模擬創建帳號的過程
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    return { accounts };
+  };
+
   const value = {
     user,
     profile,
@@ -370,6 +472,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserById,
     deleteUser,
     updatePoints,
+    switchToTestAccount,
+    isTestMode,
+    checkIn,
+    transactions,
+    redeemGiftCode,
+    createRealAccounts,
     
     // 數據庫相關功能
     products,
