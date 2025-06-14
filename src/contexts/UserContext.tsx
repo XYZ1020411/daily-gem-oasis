@@ -222,27 +222,28 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  // 創建真實帳號的函數
+  // 創建特殊帳號的函數 - 更新為支援名稱登入
   const createRealAccounts = async () => {
     const accounts = [
       {
-        email: 'user001@example.com',
-        password: 'user001pass',
+        email: '001@game.local',
+        password: '001password',
         username: '001',
-        role: 'user',
-        points: 1500
+        role: 'vip',
+        points: 500000,
+        vip_level: 3
       },
       {
-        email: 'vip8888@example.com', 
-        password: 'vip8888pass',
+        email: 'vip8888@game.local', 
+        password: 'vip8888password',
         username: 'vip8888',
         role: 'vip',
         points: 800000,
         vip_level: 5
       },
       {
-        email: 'admin002@example.com',
-        password: 'admin002pass', 
+        email: '002@game.local',
+        password: '002password', 
         username: '002',
         role: 'admin',
         points: 1000000
@@ -289,7 +290,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
 
         results.push({
-          email: account.email,
+          email: account.username, // 返回用戶名而不是完整email
           password: account.password,
           role: account.role
         });
@@ -385,7 +386,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const testAccounts = {
         vip1: {
           id: 'test-vip1',
-          email: 'vip1@test.com',
+          email: '001@game.local',
           username: '001',
           points: 500000,
           role: 'vip',
@@ -393,7 +394,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         },
         vip2: {
           id: 'test-vip2',
-          email: 'vip2@test.com',
+          email: 'vip8888@game.local',
           username: 'vip8888',
           points: 800000,
           role: 'vip',

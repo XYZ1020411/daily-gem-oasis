@@ -6,25 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
+import { Loader2, User, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TestAccountSwitcher from './TestAccountSwitcher';
+import AccountCreator from './AccountCreator';
 
 const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showTestAccounts, setShowTestAccounts] = useState(false);
-  const { signIn, signUp, createRealAccounts } = useUser();
+  const [showAccountCreator, setShowAccountCreator] = useState(false);
+  const { signIn, signUp } = useUser();
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "請填寫完整資訊",
-        description: "請輸入電子郵件和密碼",
+        description: "請輸入用戶名稱和密碼",
         variant: "destructive"
       });
       return;
@@ -32,6 +34,8 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // 將用戶名轉換為email格式進行登入
+      const email = `${username}@game.local`;
       await signIn(email, password);
       toast({
         title: "登入成功",
@@ -41,7 +45,7 @@ const AuthPage: React.FC = () => {
       console.error('登入錯誤:', error);
       toast({
         title: "登入失敗",
-        description: error.message || "請檢查您的帳號密碼",
+        description: "請檢查您的用戶名稱和密碼",
         variant: "destructive"
       });
     } finally {
@@ -51,7 +55,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !username) {
+    if (!username || !password || !confirmPassword) {
       toast({
         title: "請填寫完整資訊",
         description: "請輸入所有必填欄位",
@@ -60,39 +64,29 @@ const AuthPage: React.FC = () => {
       return;
     }
 
+    if (password !== confirmPassword) {
+      toast({
+        title: "密碼不一致",
+        description: "請確認兩次輸入的密碼相同",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // 將用戶名轉換為email格式進行註冊
+      const email = `${username}@game.local`;
       await signUp(email, password, username);
       toast({
         title: "註冊成功",
-        description: "請檢查您的電子郵件以驗證帳號",
+        description: "帳號已成功創建！",
       });
     } catch (error: any) {
       console.error('註冊錯誤:', error);
       toast({
         title: "註冊失敗", 
         description: error.message || "註冊時發生錯誤，請重試",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateRealAccounts = async () => {
-    setIsLoading(true);
-    try {
-      const result = await createRealAccounts();
-      toast({
-        title: "真實帳號創建成功",
-        description: `已創建 ${result.accounts.length} 個帳號`,
-      });
-      console.log('創建的帳號:', result.accounts);
-    } catch (error: any) {
-      console.error('創建帳號錯誤:', error);
-      toast({
-        title: "創建失敗",
-        description: error.message || "創建帳號時發生錯誤",
         variant: "destructive"
       });
     } finally {
@@ -109,6 +103,25 @@ const AuthPage: React.FC = () => {
             <Button
               variant="ghost"
               onClick={() => setShowTestAccounts(false)}
+              className="text-white hover:bg-white/20"
+            >
+              返回登入頁面
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showAccountCreator) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
+          <AccountCreator />
+          <div className="mt-4 text-center">
+            <Button
+              variant="ghost"
+              onClick={() => setShowAccountCreator(false)}
               className="text-white hover:bg-white/20"
             >
               返回登入頁面
@@ -140,15 +153,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">電子郵件</Label>
+                  <Label htmlFor="username">用戶名稱</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="輸入您的電子郵件"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      placeholder="輸入您的用戶名稱"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -187,31 +200,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">用戶名稱</Label>
+                  <Label htmlFor="signup-username">用戶名稱</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="username"
+                      id="signup-username"
                       type="text"
                       placeholder="輸入用戶名稱"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">電子郵件</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="輸入您的電子郵件"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -228,6 +225,22 @@ const AuthPage: React.FC = () => {
                       placeholder="輸入您的密碼"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">確認密碼</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="再次輸入密碼"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -250,14 +263,13 @@ const AuthPage: React.FC = () => {
 
           <div className="mt-6 pt-6 border-t space-y-3">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">開發者工具</p>
+              <p className="text-sm text-muted-foreground mb-2">特殊帳號</p>
               <Button
                 variant="outline"
-                onClick={handleCreateRealAccounts}
-                disabled={isLoading}
+                onClick={() => setShowAccountCreator(true)}
                 className="w-full mb-2"
               >
-                創建真實帳號 (001, vip8888, 002)
+                創建特殊帳號 (001, VIP8888, 002)
               </Button>
               <Button
                 variant="outline"
