@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSync } from '@/hooks/useSync';
 import { useUser } from '@/contexts/UserContext';
-import { Sync, Download, Upload, Users, Database } from 'lucide-react';
+import { RefreshCw, Download, Upload, Users, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminSync: React.FC = () => {
@@ -90,7 +90,7 @@ const AdminSync: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="p-4">
           <div className="flex items-center space-x-3">
-            <Sync className="w-8 h-8 text-blue-500" />
+            <RefreshCw className="w-8 h-8 text-blue-500" />
             <div>
               <p className="text-sm text-gray-600">同步狀態</p>
               <p className="font-semibold capitalize">{syncStatus}</p>
@@ -127,7 +127,7 @@ const AdminSync: React.FC = () => {
             disabled={isLoading}
             className="flex items-center space-x-2"
           >
-            <Sync className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" />
             <span>強制同步</span>
           </Button>
 
