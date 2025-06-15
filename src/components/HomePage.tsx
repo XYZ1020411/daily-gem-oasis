@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Calendar, 
   Coins, 
-  Gamepad2, 
+  BookOpen, 
   Users, 
   TrendingUp, 
   Star,
@@ -15,7 +16,9 @@ import {
   Megaphone,
   CheckCircle,
   Crown,
-  Zap
+  Zap,
+  Heart,
+  Clock
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -158,26 +161,26 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
           </CardContent>
         </Card>
 
-        {/* 遊戲娛樂 */}
+        {/* 每日小說 */}
         <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 group">
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
-              <Gamepad2 className="w-5 h-5 text-purple-500" />
-              <CardTitle className="text-lg">遊戲娛樂</CardTitle>
+              <BookOpen className="w-5 h-5 text-purple-500" />
+              <CardTitle className="text-lg">每日小說</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="text-2xl font-bold text-purple-600">
-                4+
+                最新
               </div>
-              <p className="text-sm text-muted-foreground">精彩遊戲等你來玩</p>
+              <p className="text-sm text-muted-foreground">精彩小說每日更新</p>
               <Button 
-                onClick={() => onPageChange('games')} 
+                onClick={() => onPageChange('novels')} 
                 className="w-full bg-purple-500 hover:bg-purple-600"
               >
-                <Gamepad2 className="w-4 h-4 mr-2" />
-                開始遊戲
+                <BookOpen className="w-4 h-4 mr-2" />
+                開始閱讀
               </Button>
             </div>
           </CardContent>
@@ -239,7 +242,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-emerald-500" />
-              <CardTitle className="text-lg">數據統計</CardTitle>
+              <CardTitle className="text-lg">閱讀統計</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -247,7 +250,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
               <div className="text-2xl font-bold text-emerald-600">
                 實時
               </div>
-              <p className="text-sm text-muted-foreground">會員活動統計與數據分析</p>
+              <p className="text-sm text-muted-foreground">閱讀進度與統計分析</p>
               <Button 
                 variant="outline"
                 className="w-full"
@@ -270,7 +273,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
               <div>
                 <CardTitle className="text-xl">升級VIP會員</CardTitle>
                 <CardDescription className="text-white/80">
-                  享受雙倍積分、專屬遊戲、優先客服等特權
+                  享受雙倍積分、專屬小說、優先客服等特權
                 </CardDescription>
               </div>
             </div>
@@ -283,8 +286,8 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
                   <span>雙倍積分獎勵</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Star className="w-4 h-4" />
-                  <span>專屬VIP遊戲</span>
+                  <Heart className="w-4 h-4" />
+                  <span>專屬VIP小說</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4" />
@@ -312,17 +315,17 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
             <div className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
               <Badge variant="secondary">新功能</Badge>
               <div>
-                <h4 className="font-medium">全新遊戲上線</h4>
-                <p className="text-sm text-muted-foreground">射氣球和射飛鏢遊戲現已開放，快來挑戰獲得豐厚獎勵！</p>
-                <span className="text-xs text-muted-foreground">2024-06-05</span>
+                <h4 className="font-medium">每日小說系統上線</h4>
+                <p className="text-sm text-muted-foreground">全新的每日小說功能現已開放，每天精選優質小說供您閱讀！</p>
+                <span className="text-xs text-muted-foreground">2024-06-15</span>
               </div>
             </div>
             
             <div className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
               <Badge variant="outline" className="border-green-500 text-green-600">活動</Badge>
               <div>
-                <h4 className="font-medium">簽到獎勵加倍</h4>
-                <p className="text-sm text-muted-foreground">本週內連續簽到7天可獲得額外100積分獎勵！</p>
+                <h4 className="font-medium">閱讀獎勵加倍</h4>
+                <p className="text-sm text-muted-foreground">本週內完成每日小說閱讀可獲得額外積分獎勵！</p>
                 <span className="text-xs text-muted-foreground">2024-06-01</span>
               </div>
             </div>
@@ -342,17 +345,17 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
         
         <Card className="text-center">
           <CardContent className="pt-6">
-            <TrendingUp className="w-8 h-8 mx-auto text-green-500 mb-2" />
+            <BookOpen className="w-8 h-8 mx-auto text-green-500 mb-2" />
             <div className="text-2xl font-bold">89</div>
-            <p className="text-sm text-muted-foreground">今日活躍</p>
+            <p className="text-sm text-muted-foreground">今日閱讀者</p>
           </CardContent>
         </Card>
         
         <Card className="text-center">
           <CardContent className="pt-6">
-            <Crown className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
-            <div className="text-2xl font-bold">156</div>
-            <p className="text-sm text-muted-foreground">VIP會員數</p>
+            <Star className="w-8 h-8 mx-auto text-yellow-500 mb-2" />
+            <div className="text-2xl font-bold">4.8</div>
+            <p className="text-sm text-muted-foreground">平均評分</p>
           </CardContent>
         </Card>
       </div>

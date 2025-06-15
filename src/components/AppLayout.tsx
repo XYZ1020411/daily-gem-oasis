@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, Menu, X, Home, Gamepad2, Wallet, ShoppingBag, Settings, LogOut, MessageSquare, Info } from 'lucide-react';
+import { Moon, Sun, Menu, X, Home, BookOpen, Wallet, ShoppingBag, Settings, LogOut, MessageSquare, Info } from 'lucide-react';
 import CustomerServiceScript from './CustomerServiceScript';
 
 interface AppLayoutProps {
@@ -20,7 +19,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
 
   const menuItems = [
     { id: 'home', label: '首頁', icon: Home },
-    { id: 'games', label: '遊戲娛樂', icon: Gamepad2 },
+    { id: 'novels', label: '每日小說', icon: BookOpen },
     { id: 'wallet', label: '我的錢包', icon: Wallet },
     { id: 'shop', label: '積分商城', icon: ShoppingBag },
     { id: 'info', label: '資訊服務', icon: Info },

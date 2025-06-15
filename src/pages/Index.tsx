@@ -4,7 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import AuthPage from '@/components/AuthPage';
 import AppLayout from '@/components/AppLayout';
 import HomePage from '@/components/HomePage';
-import GamesPage from '@/components/GamesPage';
+import NovelPage from '@/components/NovelPage';
 import WalletPage from '@/components/WalletPage';
 import ShopPage from '@/components/ShopPage';
 import AdminPage from '@/components/AdminPage';
@@ -37,8 +37,8 @@ const Index = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onPageChange={setCurrentPage} />;
-      case 'games':
-        return <GamesPage />;
+      case 'novels':
+        return <NovelPage />;
       case 'wallet':
         return <WalletPage />;
       case 'shop':
