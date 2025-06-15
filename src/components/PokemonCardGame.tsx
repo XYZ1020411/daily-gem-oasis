@@ -12,7 +12,7 @@ import {
   Star, 
   Zap, 
   Trophy,
-  Cards,
+  CreditCard,
   Sparkles,
   Crown,
   Shield,
@@ -40,7 +40,7 @@ const PokemonCardGame = () => {
   if (!user) {
     return (
       <div className="text-center py-20">
-        <Cards className="w-16 h-16 mx-auto text-purple-500 mb-4" />
+        <CreditCard className="w-16 h-16 mx-auto text-purple-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2">請先登入</h2>
         <p className="text-muted-foreground">需要登入才能遊玩寶可夢卡牌遊戲</p>
       </div>
@@ -90,7 +90,7 @@ const PokemonCardGame = () => {
             <span>卡包商店</span>
           </TabsTrigger>
           <TabsTrigger value="collection" className="flex items-center space-x-2">
-            <Cards className="w-4 h-4" />
+            <CreditCard className="w-4 h-4" />
             <span>我的收藏</span>
           </TabsTrigger>
           <TabsTrigger value="battle" className="flex items-center space-x-2">

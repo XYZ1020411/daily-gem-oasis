@@ -440,6 +440,130 @@ export type Database = {
         }
         Relationships: []
       }
+      pokemon_battles: {
+        Row: {
+          created_at: string
+          id: string
+          player1_deck: string[]
+          player1_id: string
+          player2_deck: string[] | null
+          player2_id: string | null
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player1_deck: string[]
+          player1_id: string
+          player2_deck?: string[] | null
+          player2_id?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player1_deck?: string[]
+          player1_id?: string
+          player2_deck?: string[] | null
+          player2_id?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pokemon_battles_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pokemon_battles_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pokemon_battles_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pokemon_cards: {
+        Row: {
+          attack: number
+          created_at: string
+          defense: number
+          evolution_stage: number
+          generation: number
+          hp: number
+          id: string
+          image_url: string | null
+          is_legendary: boolean
+          is_mythical: boolean
+          name: string
+          name_en: string
+          pokemon_id: number
+          rarity: string
+          sp_attack: number
+          sp_defense: number
+          speed: number
+          total_stats: number
+          type1: string
+          type2: string | null
+        }
+        Insert: {
+          attack: number
+          created_at?: string
+          defense: number
+          evolution_stage?: number
+          generation: number
+          hp: number
+          id?: string
+          image_url?: string | null
+          is_legendary?: boolean
+          is_mythical?: boolean
+          name: string
+          name_en: string
+          pokemon_id: number
+          rarity: string
+          sp_attack: number
+          sp_defense: number
+          speed: number
+          total_stats: number
+          type1: string
+          type2?: string | null
+        }
+        Update: {
+          attack?: number
+          created_at?: string
+          defense?: number
+          evolution_stage?: number
+          generation?: number
+          hp?: number
+          id?: string
+          image_url?: string | null
+          is_legendary?: boolean
+          is_mythical?: boolean
+          name?: string
+          name_en?: string
+          pokemon_id?: number
+          rarity?: string
+          sp_attack?: number
+          sp_defense?: number
+          speed?: number
+          total_stats?: number
+          type1?: string
+          type2?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string
@@ -597,6 +721,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_pokemon_cards: {
+        Row: {
+          card_id: string
+          id: string
+          obtained_at: string
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          id?: string
+          obtained_at?: string
+          quantity?: number
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          id?: string
+          obtained_at?: string
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pokemon_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pokemon_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pokemon_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_sync_data: {
         Row: {
