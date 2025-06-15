@@ -73,7 +73,16 @@ export const usePokemonCards = () => {
 
       if (error) throw error;
 
-      setUserCards(data || []);
+      // Type cast the data to ensure rarity is properly typed
+      const typedData = data?.map(item => ({
+        ...item,
+        card: {
+          ...item.card,
+          rarity: item.card.rarity as 'C' | 'UC' | 'R' | 'SR' | 'SSR' | 'UR'
+        }
+      })) as UserCard[] || [];
+
+      setUserCards(typedData);
     } catch (error: any) {
       console.error('Error loading user cards:', error);
       toast({
@@ -152,7 +161,7 @@ export const usePokemonCards = () => {
         sp_defense: spDefense,
         speed,
         total_stats: totalStats,
-        rarity: rarity as any,
+        rarity: rarity as 'C' | 'UC' | 'R' | 'SR' | 'SSR' | 'UR',
         generation: Math.floor((pokemonId - 1) / 151) + 1,
         evolution_stage: Math.floor(Math.random() * 3) + 1,
         is_legendary: rarity === 'SSR' || rarity === 'UR' ? Math.random() < 0.3 : false,
