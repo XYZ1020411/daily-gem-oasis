@@ -83,6 +83,7 @@ export const usePokemonCards = () => {
       })) as UserCard[] || [];
 
       setUserCards(typedData);
+      console.log('Loaded user cards:', typedData.length);
     } catch (error: any) {
       console.error('Error loading user cards:', error);
       toast({
@@ -175,67 +176,113 @@ export const usePokemonCards = () => {
 
   // 儲存抽到的卡片到數據庫
   const saveCardsToDatabase = async (cards: PokemonCard[]) => {
-    if (!user) return;
+    if (!user) {
+      console.error('No user found');
+      return;
+    }
+
+    console.log('Saving cards to database for user:', user.id);
+    console.log('Cards to save:', cards.length);
 
     try {
-      // 首先檢查並插入不存在的寶可夢卡片
+      // 首先為每張卡片創建或獲取 pokemon_cards 記錄
       for (const card of cards) {
-        const { error: cardError } = await supabase
-          .from('pokemon_cards')
-          .upsert({
-            pokemon_id: card.pokemon_id,
-            name: card.name,
-            name_en: card.name_en,
-            type1: card.type1,
-            type2: card.type2,
-            hp: card.hp,
-            attack: card.attack,
-            defense: card.defense,
-            sp_attack: card.sp_attack,
-            sp_defense: card.sp_defense,
-            speed: card.speed,
-            total_stats: card.total_stats,
-            rarity: card.rarity,
-            generation: card.generation,
-            evolution_stage: card.evolution_stage,
-            is_legendary: card.is_legendary,
-            is_mythical: card.is_mythical
-          }, { 
-            onConflict: 'pokemon_id',
-            ignoreDuplicates: true 
-          });
+        console.log('Processing card:', card.pokemon_id, card.name);
 
-        if (cardError) {
-          console.error('Error inserting pokemon card:', cardError);
+        // 檢查卡片是否已存在
+        const { data: existingCard, error: checkError } = await supabase
+          .from('pokemon_cards')
+          .select('id')
+          .eq('pokemon_id', card.pokemon_id)
+          .single();
+
+        let cardId = existingCard?.id;
+
+        if (checkError && checkError.code === 'PGRST116') {
+          // 卡片不存在，創建新的
+          console.log('Creating new pokemon card:', card.pokemon_id);
+          const { data: newCard, error: insertError } = await supabase
+            .from('pokemon_cards')
+            .insert({
+              pokemon_id: card.pokemon_id,
+              name: card.name,
+              name_en: card.name_en,
+              type1: card.type1,
+              type2: card.type2,
+              hp: card.hp,
+              attack: card.attack,
+              defense: card.defense,
+              sp_attack: card.sp_attack,
+              sp_defense: card.sp_defense,
+              speed: card.speed,
+              total_stats: card.total_stats,
+              rarity: card.rarity,
+              generation: card.generation,
+              evolution_stage: card.evolution_stage,
+              is_legendary: card.is_legendary,
+              is_mythical: card.is_mythical
+            })
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error('Error inserting pokemon card:', insertError);
+            throw insertError;
+          }
+
+          cardId = newCard.id;
+          console.log('Created new card with ID:', cardId);
+        } else if (checkError) {
+          console.error('Error checking existing card:', checkError);
+          throw checkError;
+        } else {
+          console.log('Using existing card with ID:', cardId);
+        }
+
+        // 檢查用戶是否已擁有此卡片
+        const { data: existingUserCard, error: userCardCheckError } = await supabase
+          .from('user_pokemon_cards')
+          .select('id, quantity')
+          .eq('user_id', user.id)
+          .eq('card_id', cardId)
+          .single();
+
+        if (userCardCheckError && userCardCheckError.code === 'PGRST116') {
+          // 用戶沒有此卡片，創建新記錄
+          console.log('Adding new card to user collection:', cardId);
+          const { error: addCardError } = await supabase
+            .from('user_pokemon_cards')
+            .insert({
+              user_id: user.id,
+              card_id: cardId,
+              quantity: 1
+            });
+
+          if (addCardError) {
+            console.error('Error adding card to user collection:', addCardError);
+            throw addCardError;
+          }
+          console.log('Successfully added card to user collection');
+        } else if (userCardCheckError) {
+          console.error('Error checking user card:', userCardCheckError);
+          throw userCardCheckError;
+        } else {
+          // 用戶已有此卡片，增加數量
+          console.log('Updating existing card quantity:', cardId);
+          const { error: updateCardError } = await supabase
+            .from('user_pokemon_cards')
+            .update({ quantity: existingUserCard.quantity + 1 })
+            .eq('id', existingUserCard.id);
+
+          if (updateCardError) {
+            console.error('Error updating card quantity:', updateCardError);
+            throw updateCardError;
+          }
+          console.log('Successfully updated card quantity');
         }
       }
 
-      // 獲取已插入的卡片ID
-      const { data: pokemonCards, error: fetchError } = await supabase
-        .from('pokemon_cards')
-        .select('id, pokemon_id')
-        .in('pokemon_id', cards.map(c => c.pokemon_id));
-
-      if (fetchError) throw fetchError;
-
-      // 為用戶添加卡片到收藏
-      const userCardsToInsert = cards.map(card => {
-        const dbCard = pokemonCards?.find(pc => pc.pokemon_id === card.pokemon_id);
-        return {
-          user_id: user.id,
-          card_id: dbCard?.id,
-          quantity: 1
-        };
-      }).filter(uc => uc.card_id);
-
-      if (userCardsToInsert.length > 0) {
-        const { error: userCardError } = await supabase
-          .from('user_pokemon_cards')
-          .insert(userCardsToInsert);
-
-        if (userCardError) throw userCardError;
-      }
-
+      console.log('All cards saved successfully');
     } catch (error: any) {
       console.error('Error saving cards to database:', error);
       throw error;
@@ -258,9 +305,6 @@ export const usePokemonCards = () => {
     setCurrentPackType(packType);
     
     try {
-      // 扣除積分
-      updatePoints(-cost, `開啟${packType}卡包`);
-
       // 模擬抽卡
       const cards = simulateCardDraw(packType);
       setDrawnCards(cards);
@@ -268,6 +312,9 @@ export const usePokemonCards = () => {
 
       // 儲存卡片到數據庫
       await saveCardsToDatabase(cards);
+
+      // 扣除積分
+      updatePoints(-cost, `開啟${packType}卡包`);
 
       toast({
         title: "抽卡成功！",
