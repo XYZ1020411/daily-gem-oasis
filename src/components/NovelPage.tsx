@@ -137,7 +137,7 @@ const NovelPage: React.FC = () => {
     if (novel.id === todayNovel?.id && !hasReadToday) {
       setHasReadToday(true);
       const reward = profile?.role === 'vip' ? 100 : 50;
-      updatePoints(reward);
+      updatePoints(reward, '每日小說閱讀獎勵');
       toast({
         title: "閱讀完成！",
         description: `獲得 ${reward} 積分獎勵`,

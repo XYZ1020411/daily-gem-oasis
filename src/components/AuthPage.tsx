@@ -28,10 +28,10 @@ const AuthPage: React.FC = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         title: "請填寫完整資訊",
-        description: "請輸入用戶名稱和密碼",
+        description: "請輸入電子郵件和密碼",
         variant: "destructive"
       });
       return;
@@ -39,18 +39,28 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('Attempting login with username:', username);
-      await signIn(username, password);
-      console.log('Login successful');
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "登入成功",
+        description: "歡迎回來！",
+      });
     } catch (error: any) {
       console.error('登入錯誤:', error);
       
-      let errorMessage = "請檢查您的用戶名稱和密碼";
+      let errorMessage = "請檢查您的電子郵件和密碼";
       
-      if (error.message === '用戶名稱或密碼錯誤') {
-        errorMessage = "用戶名稱或密碼錯誤，請檢查後重試";
-      } else if (error.message === 'Invalid login credentials') {
-        errorMessage = "用戶名稱或密碼錯誤，請使用預設帳號：vip001, vip8888, admin002";
+      if (error.message === 'Invalid login credentials') {
+        errorMessage = "電子郵件或密碼錯誤，請檢查後重試";
+      } else if (error.message === 'Email not confirmed') {
+        errorMessage = "請先確認您的電子郵件地址";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -67,7 +77,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !email || !password || !confirmPassword || !displayName) {
+    if (!email || !password || !confirmPassword || !displayName) {
       toast({
         title: "請填寫完整資訊",
         description: "請輸入所有必填欄位",
@@ -96,21 +106,41 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await signUp(email, password, displayName);
-      
-      // 發送歡迎電子郵件
-      try {
-        await sendWelcomeEmail(email, displayName);
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            display_name: displayName,
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.user && !data?.user?.email_confirmed_at) {
+        // 顯示驗證碼通知
+        if (Notification.permission === 'granted') {
+          new Notification('註冊成功', {
+            body: '請檢查您的電子郵件並點擊確認連結完成註冊',
+            icon: '/favicon.ico'
+          });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification('註冊成功', {
+                body: '請檢查您的電子郵件並點擊確認連結完成註冊',
+                icon: '/favicon.ico'
+              });
+            }
+          });
+        }
+        
         toast({
           title: "註冊成功",
-          description: "歡迎郵件已發送至您的電子郵件地址",
-        });
-      } catch (emailError) {
-        console.error('發送歡迎郵件失敗:', emailError);
-        toast({
-          title: "註冊成功",
-          description: "註冊完成，但歡迎郵件發送失敗",
-          variant: "destructive"
+          description: "請檢查您的電子郵件並點擊確認連結完成註冊",
         });
       }
     } catch (error: any) {
@@ -208,15 +238,15 @@ const AuthPage: React.FC = () => {
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">用戶名稱</Label>
+                  <Label htmlFor="signin-email">電子郵件</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="username"
-                      type="text"
-                      placeholder="輸入您的用戶名稱"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      id="signin-email"
+                      type="email"
+                      placeholder="輸入您的電子郵件"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -224,11 +254,11 @@ const AuthPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password">密碼</Label>
+                  <Label htmlFor="signin-password">密碼</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="password"
+                      id="signin-password"
                       type="password"
                       placeholder="輸入您的密碼"
                       value={password}
@@ -251,56 +281,10 @@ const AuthPage: React.FC = () => {
                 </Button>
               </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">或使用</span>
-                </div>
-              </div>
-
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full bg-[#5865F2] text-white hover:bg-[#4752C4] border-[#5865F2]"
-                onClick={handleDiscordLogin}
-                disabled={isLoading}
-              >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
-                </svg>
-                使用 Discord 登入
-              </Button>
-
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-800 mb-2">系統提示：</h4>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <div className="mb-2">請使用以下預設帳號登入：</div>
-                  <div>• 用戶名稱: <strong>vip001</strong> 密碼: <strong>001password</strong> (VIP用戶)</div>
-                  <div>• 用戶名稱: <strong>vip8888</strong> 密碼: <strong>vip8888password</strong> (VIP用戶)</div>
-                  <div>• 用戶名稱: <strong>admin002</strong> 密碼: <strong>002password</strong> (管理員)</div>
-                </div>
-              </div>
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-username">用戶名稱</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-username"
-                      type="text"
-                      placeholder="輸入用戶名稱"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">電子郵件</Label>
@@ -379,49 +363,9 @@ const AuthPage: React.FC = () => {
                 </Button>
               </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">或使用</span>
-                </div>
-              </div>
-
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full bg-[#5865F2] text-white hover:bg-[#4752C4] border-[#5865F2]"
-                onClick={handleDiscordLogin}
-                disabled={isLoading}
-              >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
-                </svg>
-                使用 Discord 註冊
-              </Button>
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 pt-6 border-t space-y-3">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">特殊帳號管理</p>
-              <Button
-                variant="outline"
-                onClick={() => setShowAccountCreator(true)}
-                className="w-full mb-2"
-              >
-                創建特殊帳號到數據庫
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowTestAccounts(true)}
-                className="w-full"
-              >
-                使用測試帳號
-              </Button>
-            </div>
-          </div>
         </Card>
 
         <div className="mt-6 text-center text-white/60 text-sm">
