@@ -48,51 +48,63 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isLoggedIn = !!(user && (profile || isTestMode));
 
   useEffect(() => {
+    let mounted = true;
+    
     const fetchSession = async () => {
-      setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (session) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
+        if (mounted) {
+          if (session) {
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          } else {
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error('Error fetching session:', error);
-        toast({
-          title: "無法獲取用戶會話",
-          description: "請檢查您的網路連接",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+          toast({
+            title: "無法獲取用戶會話",
+            description: "請檢查您的網路連接",
+            variant: "destructive"
+          });
+        }
       }
     };
 
     fetchSession();
 
-    // 修復：改善認證狀態監聽
+    // 修復：防止重複的認證狀態變化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session);
+      if (!mounted) return;
       
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
         try {
           await fetchProfile(session.user.id);
-          setIsLoading(false);
         } catch (error) {
           console.error('Error fetching profile after sign in:', error);
-          setIsLoading(false);
+        } finally {
+          if (mounted) setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setIsTestMode(false);
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // 忽略 token 刷新事件，避免重複載入
+        return;
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
