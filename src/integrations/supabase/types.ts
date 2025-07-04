@@ -375,6 +375,95 @@ export type Database = {
           },
         ]
       }
+      novel_reading_records: {
+        Row: {
+          created_at: string
+          id: string
+          novel_id: string
+          points_earned: number
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          novel_id: string
+          points_earned?: number
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          novel_id?: string
+          points_earned?: number
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "novel_reading_records_novel_id_fkey"
+            columns: ["novel_id"]
+            isOneToOne: false
+            referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      novels: {
+        Row: {
+          author: string
+          content: string
+          created_at: string
+          genre: string
+          id: string
+          is_daily_novel: boolean
+          is_featured: boolean
+          publish_date: string
+          rating: number
+          read_time: number
+          source_url: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          author: string
+          content: string
+          created_at?: string
+          genre?: string
+          id?: string
+          is_daily_novel?: boolean
+          is_featured?: boolean
+          publish_date?: string
+          rating?: number
+          read_time?: number
+          source_url?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          author?: string
+          content?: string
+          created_at?: string
+          genre?: string
+          id?: string
+          is_daily_novel?: boolean
+          is_featured?: boolean
+          publish_date?: string
+          rating?: number
+          read_time?: number
+          source_url?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
+      }
       player_actions_mw2: {
         Row: {
           action_data: Json
