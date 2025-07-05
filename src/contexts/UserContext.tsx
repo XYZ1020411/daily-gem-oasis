@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -49,16 +50,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let sessionCheckComplete = false;
     
     const fetchSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        sessionCheckComplete = true;
 
         if (mounted) {
           if (session) {
             setUser(session.user);
             await fetchProfile(session.user.id);
           } else {
+            // 沒有 session 時，立即停止載入狀態
             setIsLoading(false);
           }
         }
@@ -77,9 +81,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     fetchSession();
 
+    // 設置一個超時機制，避免無限載入
+    const timeoutId = setTimeout(() => {
+      if (mounted && !sessionCheckComplete) {
+        console.log('Session check timeout, stopping loading');
+        setIsLoading(false);
+      }
+    }, 3000); // 3秒超時
+
     // 修復：防止重複的認證狀態變化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      console.log('Auth state change:', event);
       
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user);
@@ -103,6 +117,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
@@ -157,9 +172,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } as User;
 
       setProfile(typedProfile);
+      setIsLoading(false); // 確保在獲取 profile 後停止載入
       return typedProfile;
     } catch (error: any) {
       console.error('Error fetching profile:', error);
+      setIsLoading(false); // 即使出錯也要停止載入
       toast({
         title: "載入個人資料失敗",
         description: error.message || "無法載入您的個人資料",
@@ -625,18 +642,344 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     isLoggedIn,
     signIn,
-    signUp,
-    signOut,
-    updateProfile,
-    updateUserById,
-    deleteUser,
-    updatePoints,
-    switchToTestAccount,
+    signUp: async (email: string, password: string, displayName: string) => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              username: email.split('@')[0],
+              display_name: displayName,
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.user) {
+          setUser(data.user);
+          await fetchProfile(data.user.id);
+        }
+      } catch (error: any) {
+        console.error('註冊錯誤:', error);
+        setIsLoading(false);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    signOut: async () => {
+      setIsLoading(true);
+      try {
+        // 如果是測試模式，直接清除狀態
+        if (isTestMode) {
+          setUser(null);
+          setProfile(null);
+          setIsTestMode(false);
+          setIsLoading(false);
+          return;
+        }
+
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          throw error;
+        }
+        setUser(null);
+        setProfile(null);
+        setIsTestMode(false);
+      } catch (error: any) {
+        console.error('登出錯誤:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    updateProfile: async (updates: Partial<UserContextType['profile']>) => {
+      if (!profile) {
+        toast({
+          title: "錯誤",
+          description: "找不到用戶個人資料",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 如果是測試模式，直接更新本地狀態
+      if (isTestMode) {
+        setProfile(prev => prev ? { ...prev, ...updates } : prev);
+        toast({
+          title: "更新成功",
+          description: "您的個人資料已成功更新",
+        });
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', profile.id)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        const typedProfile = {
+          ...data,
+          role: data.role as 'admin' | 'vip' | 'user'
+        } as User;
+
+        setProfile(typedProfile);
+        setUsers(prevUsers => {
+          return prevUsers.map(u => u.id === profile.id ? { ...u, ...updates } : u);
+        });
+
+        toast({
+          title: "更新成功",
+          description: "您的個人資料已成功更新",
+        });
+      } catch (error: any) {
+        console.error('更新個人資料錯誤:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message || "更新個人資料時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    updateUserById: async (userId: string, updates: Partial<UserContextType['profile']>) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setUsers(prevUsers => {
+          return prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u);
+        });
+
+        toast({
+          title: "更新成功",
+          description: "用戶資料已成功更新",
+        });
+      } catch (error: any) {
+        console.error('更新用戶資料錯誤:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message || "更新用戶資料時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    deleteUser: async (userId: string) => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId);
+
+        if (error) {
+          throw error;
+        }
+
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+
+        toast({
+          title: "刪除成功",
+          description: "用戶已成功刪除",
+        });
+      } catch (error: any) {
+        console.error('刪除用戶錯誤:', error);
+        toast({
+          title: "刪除失敗",
+          description: error.message || "刪除用戶時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    updatePoints: async (amount: number, description: string) => {
+      if (!profile) {
+        toast({
+          title: "錯誤",
+          description: "找不到用戶個人資料",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 如果是測試模式，直接更新本地狀態
+      if (isTestMode) {
+        setProfile(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
+        
+        // 添加交易記錄
+        const transaction = {
+          id: Date.now().toString(),
+          userId: profile.id,
+          amount,
+          description,
+          timestamp: new Date().toISOString(),
+          type: amount > 0 ? 'earn' : 'spend'
+        };
+        setTransactions(prev => [transaction, ...prev]);
+
+        toast({
+          title: "積分更新",
+          description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
+        });
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ points: (profile.points || 0) + amount })
+          .eq('id', profile.id)
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        const typedProfile = {
+          ...data,
+          role: data.role as 'admin' | 'vip' | 'user'
+        } as User;
+
+        setProfile(typedProfile);
+        setUsers(prevUsers => {
+          return prevUsers.map(u => u.id === profile.id ? { ...u, points: (u.points || 0) + amount } : u);
+        });
+
+        // 添加交易記錄
+        const transaction = {
+          id: Date.now().toString(),
+          userId: profile.id,
+          amount,
+          description,
+          timestamp: new Date().toISOString(),
+          type: amount > 0 ? 'earn' : 'spend'
+        };
+        setTransactions(prev => [transaction, ...prev]);
+
+        toast({
+          title: "積分更新",
+          description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
+        });
+      } catch (error: any) {
+        console.error('更新積分錯誤:', error);
+        toast({
+          title: "更新失敗",
+          description: error.message || "更新積分時發生錯誤，請重試",
+          variant: "destructive"
+        });
+      }
+    },
+    switchToTestAccount: (accountType: 'vip1' | 'vip2') => {
+      const testAccounts = {
+        vip1: {
+          id: 'test-vip1',
+          username: 'vip001',
+          display_name: 'VIP會員001',
+          email_username: 'vip001',
+          role: 'vip' as const,
+          points: 500000,
+          vip_level: 3,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          check_in_streak: 15,
+          last_check_in: new Date().toISOString(),
+          join_date: new Date().toISOString()
+        },
+        vip2: {
+          id: 'test-vip2',
+          username: 'vip8888',
+          display_name: 'VIP會員8888',
+          email_username: 'vip8888',
+          role: 'vip' as const,
+          points: 800000,
+          vip_level: 5,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          check_in_streak: 30,
+          last_check_in: new Date().toISOString(),
+          join_date: new Date().toISOString()
+        }
+      };
+
+      setProfile(testAccounts[accountType]);
+      setUser({ id: testAccounts[accountType].id });
+      setIsTestMode(true);
+      setIsLoading(false); // 確保測試模式下loading狀態正確
+      
+      toast({
+        title: "切換成功",
+        description: `已切換到測試帳號 ${testAccounts[accountType].username}`,
+      });
+    },
     isTestMode,
-    checkIn,
+    checkIn: () => {
+      if (!profile) {
+        toast({
+          title: "錯誤",
+          description: "找不到用戶個人資料",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      if (profile.last_check_in === today) {
+        throw new Error("今日已簽到");
+      }
+
+      const points = 100 + (profile.vip_level * 50);
+      updatePoints(points, '每日簽到獎勵');
+      
+      const newStreak = (profile.check_in_streak || 0) + 1;
+      updateProfile({
+        check_in_streak: newStreak,
+        last_check_in: today
+      });
+    },
     transactions,
-    redeemGiftCode,
-    createRealAccounts,
+    redeemGiftCode: (code: string): boolean => {
+      const giftCodes: Record<string, number> = {
+        'WELCOME100': 100,
+        'VIP500': 500,
+        'LUCKY1000': 1000
+      };
+
+      if (giftCodes[code]) {
+        updatePoints(giftCodes[code], `禮品碼兌換: ${code}`);
+        return true;
+      }
+      return false;
+    },
+    createRealAccounts: async () => {
+      const accounts = [
+        { email: 'vip001@game.local', password: '001password', role: 'vip' },
+        { email: 'vip8888@game.local', password: 'vip8888password', role: 'vip' },
+        { email: 'admin002@game.local', password: '002password', role: 'admin' }
+      ];
+
+      // 模擬創建帳號的過程
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      return { accounts };
+    },
     
     // 數據庫相關功能
     products,
