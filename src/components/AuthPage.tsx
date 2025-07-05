@@ -8,26 +8,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
 import { Loader2, User, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import TestAccountSwitcher from './TestAccountSwitcher';
-import AccountCreator from './AccountCreator';
-import { supabase } from '@/integrations/supabase/client';
-import { useEmailService } from '@/hooks/useEmailService';
 
 const AuthPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [showTestAccounts, setShowTestAccounts] = useState(false);
-  const [showAccountCreator, setShowAccountCreator] = useState(false);
   const { signIn, signUp } = useUser();
   const { toast } = useToast();
-  const { sendWelcomeEmail } = useEmailService();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password) {
       toast({
         title: "請填寫完整資訊",
@@ -38,10 +31,9 @@ const AuthPage: React.FC = () => {
     }
 
     setIsLoading(true);
+    
     try {
-      // 優化：直接使用 signIn 方法，避免重複檢查
       await signIn(email, password);
-      
       toast({
         title: "登入成功",
         description: "歡迎回來！",
@@ -71,6 +63,7 @@ const AuthPage: React.FC = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password || !confirmPassword || !displayName) {
       toast({
         title: "請填寫完整資訊",
@@ -99,9 +92,9 @@ const AuthPage: React.FC = () => {
     }
 
     setIsLoading(true);
+    
     try {
       await signUp(email, password, displayName);
-      
       toast({
         title: "註冊成功",
         description: "請檢查您的電子郵件並點擊確認連結完成註冊",
@@ -117,44 +110,6 @@ const AuthPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  if (showTestAccounts) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
-          <TestAccountSwitcher />
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={() => setShowTestAccounts(false)}
-              className="text-white hover:bg-white/20"
-            >
-              返回登入頁面
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (showAccountCreator) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
-          <AccountCreator />
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={() => setShowAccountCreator(false)}
-              className="text-white hover:bg-white/20"
-            >
-              返回登入頁面
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
@@ -221,12 +176,10 @@ const AuthPage: React.FC = () => {
                   )}
                 </Button>
               </form>
-
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
-
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">電子郵件</Label>
                   <div className="relative">
@@ -307,10 +260,8 @@ const AuthPage: React.FC = () => {
                   )}
                 </Button>
               </form>
-
             </TabsContent>
           </Tabs>
-
         </Card>
 
         <div className="mt-6 text-center text-white/60 text-sm">

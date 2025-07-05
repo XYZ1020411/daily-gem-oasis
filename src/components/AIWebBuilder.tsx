@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,14 +34,8 @@ const AIWebBuilder: React.FC = () => {
 
   const MAX_DAILY_USAGE = 10;
 
-  useEffect(() => {
-    if (profile) {
-      loadUserPages();
-      checkDailyUsage();
-    }
-  }, [profile]);
-
-  const loadUserPages = async () => {
+  // 使用 useCallback 優化函數
+  const loadUserPages = useCallback(async () => {
     if (!profile) return;
     
     try {
@@ -58,9 +52,9 @@ const AIWebBuilder: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [profile]);
 
-  const checkDailyUsage = async () => {
+  const checkDailyUsage = useCallback(async () => {
     if (!profile) return;
 
     const today = new Date().toISOString().split('T')[0];
@@ -78,7 +72,13 @@ const AIWebBuilder: React.FC = () => {
     } catch (error) {
       console.error('檢查每日使用量失敗:', error);
     }
-  };
+  }, [profile]);
+
+  useEffect(() => {
+    if (profile) {
+      Promise.all([loadUserPages(), checkDailyUsage()]);
+    }
+  }, [profile, loadUserPages, checkDailyUsage]);
 
   const generateWebPage = async () => {
     if (!profile) {
@@ -111,13 +111,8 @@ const AIWebBuilder: React.FC = () => {
     setIsGenerating(true);
 
     try {
-      // 調用 Edge Function 生成網頁
       const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-webpage', {
-        body: {
-          prompt,
-          title,
-          description
-        }
+        body: { prompt, title, description }
       });
 
       if (functionError) {
@@ -125,12 +120,9 @@ const AIWebBuilder: React.FC = () => {
       }
 
       const { htmlContent } = functionData;
-      
-      // 生成唯一的 URL ID
       const pageId = crypto.randomUUID();
       const generatedUrl = `${window.location.origin}/page/${pageId}`;
 
-      // 儲存到資料庫
       const { error } = await supabase
         .from('user_web_pages')
         .insert({
@@ -156,8 +148,7 @@ const AIWebBuilder: React.FC = () => {
       setDescription('');
       
       // 重新載入數據
-      await loadUserPages();
-      await checkDailyUsage();
+      await Promise.all([loadUserPages(), checkDailyUsage()]);
 
     } catch (error) {
       console.error('生成網頁錯誤:', error);
@@ -171,15 +162,15 @@ const AIWebBuilder: React.FC = () => {
     }
   };
 
-  const copyUrl = (url: string) => {
+  const copyUrl = useCallback((url: string) => {
     navigator.clipboard.writeText(url);
     toast({
       title: "連結已複製",
       description: "網頁連結已複製到剪貼板",
     });
-  };
+  }, [toast]);
 
-  const deleteWebPage = async (id: string) => {
+  const deleteWebPage = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('user_web_pages')
@@ -194,8 +185,7 @@ const AIWebBuilder: React.FC = () => {
         description: "網頁已刪除",
       });
 
-      await loadUserPages();
-      await checkDailyUsage();
+      await Promise.all([loadUserPages(), checkDailyUsage()]);
     } catch (error) {
       console.error('刪除網頁失敗:', error);
       toast({
@@ -204,7 +194,7 @@ const AIWebBuilder: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [profile?.id, loadUserPages, checkDailyUsage, toast]);
 
   if (isLoading) {
     return (

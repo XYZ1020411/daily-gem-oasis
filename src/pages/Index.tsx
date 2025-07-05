@@ -15,9 +15,7 @@ const Index = () => {
   const { isLoggedIn, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState('home');
 
-  console.log('Index component - isLoading:', isLoading, 'isLoggedIn:', isLoggedIn);
-
-  // 顯示載入狀態
+  // 簡化載入狀態
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center">
@@ -29,7 +27,7 @@ const Index = () => {
     );
   }
 
-  // 如果未登入，顯示認證頁面
+  // 未登入時顯示認證頁面
   if (!isLoggedIn) {
     return <AuthPage />;
   }
