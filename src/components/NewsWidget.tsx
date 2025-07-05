@@ -25,12 +25,23 @@ const NewsWidget: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        'https://newsapi.org/v2/top-headlines?country=us&category=general&pageSize=5&apiKey=abcaecf49df347a4abdea14f1d7cb52f'
+        'https://newsdata.io/api/1/news?apikey=pub_77914c9ab741571647f817116519227c8df64&country=tw&language=zh&category=general&size=5'
       );
       const data = await response.json();
       
-      if (data.status === 'ok') {
-        setArticles(data.articles);
+      if (data.status === 'success' && data.results) {
+        // 轉換新聞數據格式以匹配原有接口
+        const formattedArticles = data.results.map((item: any) => ({
+          title: item.title || '無標題',
+          description: item.description || item.content || '無描述',
+          url: item.link || '#',
+          publishedAt: item.pubDate || new Date().toISOString(),
+          source: {
+            name: item.source_id || '未知來源'
+          },
+          urlToImage: item.image_url
+        }));
+        setArticles(formattedArticles);
       } else {
         throw new Error(data.message || '獲取新聞失敗');
       }

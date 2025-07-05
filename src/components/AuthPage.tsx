@@ -39,15 +39,9 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
+      // 優化：直接使用 signIn 方法，避免重複檢查
+      await signIn(email, password);
+      
       toast({
         title: "登入成功",
         description: "歡迎回來！",
@@ -106,43 +100,12 @@ const AuthPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            display_name: displayName,
-          }
-        }
+      await signUp(email, password, displayName);
+      
+      toast({
+        title: "註冊成功",
+        description: "請檢查您的電子郵件並點擊確認連結完成註冊",
       });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.user && !data?.user?.email_confirmed_at) {
-        // 顯示驗證碼通知
-        if (Notification.permission === 'granted') {
-          new Notification('註冊成功', {
-            body: '請檢查您的電子郵件並點擊確認連結完成註冊',
-            icon: '/favicon.ico'
-          });
-        } else if (Notification.permission !== 'denied') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              new Notification('註冊成功', {
-                body: '請檢查您的電子郵件並點擊確認連結完成註冊',
-                icon: '/favicon.ico'
-              });
-            }
-          });
-        }
-        
-        toast({
-          title: "註冊成功",
-          description: "請檢查您的電子郵件並點擊確認連結完成註冊",
-        });
-      }
     } catch (error: any) {
       console.error('註冊錯誤:', error);
       toast({
@@ -151,30 +114,6 @@ const AuthPage: React.FC = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDiscordLogin = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: {
-          redirectTo: `${window.location.origin}/`
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      console.error('Discord登入錯誤:', error);
-      toast({
-        title: "Discord登入失敗",
-        description: error.message || "Discord登入時發生錯誤，請重試",
-        variant: "destructive"
-      });
       setIsLoading(false);
     }
   };
@@ -249,6 +188,7 @@ const AuthPage: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -265,6 +205,7 @@ const AuthPage: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="current-password"
                     />
                   </div>
                 </div>
@@ -298,6 +239,7 @@ const AuthPage: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -314,6 +256,7 @@ const AuthPage: React.FC = () => {
                       onChange={(e) => setDisplayName(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="name"
                     />
                   </div>
                 </div>
@@ -331,6 +274,7 @@ const AuthPage: React.FC = () => {
                       className="pl-10"
                       required
                       minLength={6}
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
@@ -347,6 +291,7 @@ const AuthPage: React.FC = () => {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
                       required
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
