@@ -910,6 +910,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_web_pages: {
+        Row: {
+          created_at: string
+          description: string | null
+          generated_url: string
+          html_content: string
+          id: string
+          is_public: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          generated_url: string
+          html_content: string
+          id?: string
+          is_public?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          generated_url?: string
+          html_content?: string
+          id?: string
+          is_public?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_web_pages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       簽到系統: {
         Row: {
           created_at: string

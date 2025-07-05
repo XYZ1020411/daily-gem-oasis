@@ -112,23 +112,19 @@ const AIWebBuilder: React.FC = () => {
 
     try {
       // 調用 Edge Function 生成網頁
-      const response = await fetch('/api/generate-webpage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('generate-webpage', {
+        body: {
           prompt,
           title,
           description
-        }),
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('生成網頁失敗');
+      if (functionError) {
+        throw new Error('生成網頁失敗: ' + functionError.message);
       }
 
-      const { htmlContent } = await response.json();
+      const { htmlContent } = functionData;
       
       // 生成唯一的 URL ID
       const pageId = crypto.randomUUID();
