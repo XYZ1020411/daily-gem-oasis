@@ -103,16 +103,25 @@ serve(async (req) => {
       console.log('使用默認節日禮包碼生成');
       // 根據節日設定不同的積分獎勵
       const holidayPoints: Record<string, number> = {
-        '元旦': 1000,
-        '情人節': 1500,
+        // 國定假日
+        '中華民國開國紀念日': 2000,
+        '和平紀念日': 1500,
+        '反侵略日': 1200,
+        '革命先烈紀念日': 1300,
+        '解嚴紀念日': 1500,
+        '孔子誕辰紀念日': 1400,
+        '國慶日': 2500,
+        '臺灣聯合國日': 1600,
+        '國父誕辰紀念日': 1800,
+        '行憲紀念日': 1700,
+        
+        // 其他節日
         '婦女節': 800,
-        '愚人節': 666,
-        '勞動節': 1200,
         '兒童節': 888,
-        '七夕': 1314,
-        '國慶日': 2000,
-        '聖誕節': 1888,
-        '跨年夜': 2025
+        '勞動節': 1200,
+        '軍人節': 1300,
+        '臺灣光復節': 1600,
+        '中華文化復興節': 1500
       };
 
       giftCodeData = {
@@ -144,6 +153,53 @@ serve(async (req) => {
     }
 
     console.log('節日禮包碼生成成功:', newGiftCode);
+
+    // 發送Discord通知
+    const discordWebhookUrl = Deno.env.get('DISCORD_WEBHOOK_URL');
+    if (discordWebhookUrl) {
+      try {
+        await fetch(discordWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: `🎉 今天是**${holiday}**！\n\n今天的節日禮包碼是：**${giftCodeData.code}**\n積分獎勵：${giftCodeData.points} 點\n\n快來領取吧！ 🎁`,
+            embeds: [{
+              title: '🎊 節日禮包碼生成通知',
+              description: giftCodeData.description,
+              color: 0x7C3AED,
+              fields: [
+                {
+                  name: '節日',
+                  value: holiday,
+                  inline: true
+                },
+                {
+                  name: '禮包碼',
+                  value: `\`${giftCodeData.code}\``,
+                  inline: true
+                },
+                {
+                  name: '積分獎勵',
+                  value: `${giftCodeData.points} 點`,
+                  inline: true
+                },
+                {
+                  name: '到期時間',
+                  value: `${expiresAt.toLocaleDateString('zh-TW')} 23:59`,
+                  inline: false
+                }
+              ],
+              timestamp: new Date().toISOString()
+            }]
+          }),
+        });
+        console.log('Discord通知發送成功');
+      } catch (discordError) {
+        console.error('Discord通知發送失敗:', discordError);
+      }
+    }
 
     return new Response(JSON.stringify({
       success: true,

@@ -19,7 +19,7 @@ interface HolidayGiftCode {
 
 const HolidayGiftCodeWidget: React.FC = () => {
   const [giftCodes, setGiftCodes] = useState<HolidayGiftCode[]>([]);
-  const [loading, setLoading] = useState(false);
+  
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
   const { profile, updatePoints } = useUser();
@@ -31,16 +31,24 @@ const HolidayGiftCodeWidget: React.FC = () => {
     const date = today.getDate();
     
     const holidays: Record<string, string> = {
-      '1-1': '元旦',
-      '2-14': '情人節',
-      '3-8': '婦女節',
-      '4-1': '愚人節',
-      '5-1': '勞動節',
-      '6-1': '兒童節',
-      '7-7': '七夕',
+      // 國定假日
+      '1-1': '中華民國開國紀念日',
+      '2-28': '和平紀念日',
+      '3-14': '反侵略日',
+      '3-29': '革命先烈紀念日',
+      '7-15': '解嚴紀念日',
+      '9-28': '孔子誕辰紀念日',
       '10-10': '國慶日',
-      '12-25': '聖誕節',
-      '12-31': '跨年夜'
+      '10-24': '臺灣聯合國日',
+      '11-12': '國父誕辰紀念日',
+      '12-25': '行憲紀念日',
+      
+      // 其他節日
+      '3-8': '婦女節',
+      '4-4': '兒童節',
+      '5-1': '勞動節',
+      '9-3': '軍人節',
+      '10-25': '臺灣光復節'
     };
     
     return holidays[`${month}-${date}`] || null;
@@ -87,7 +95,6 @@ const HolidayGiftCodeWidget: React.FC = () => {
   };
 
   const loadTodayGiftCodes = async () => {
-    setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
@@ -111,8 +118,6 @@ const HolidayGiftCodeWidget: React.FC = () => {
       setGiftCodes(formattedCodes);
     } catch (error: any) {
       console.error('載入禮包碼失敗:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -162,9 +167,8 @@ const HolidayGiftCodeWidget: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={loadTodayGiftCodes}
-              disabled={loading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -181,16 +185,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        ) : giftCodes.length > 0 ? (
+        {giftCodes.length > 0 ? (
           <div className="space-y-3">
             {giftCodes.map((giftCode) => (
               <div key={giftCode.id} className="p-3 border rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50">
