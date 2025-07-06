@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser } from '@/contexts/UserContext';
 import { useNovels } from '@/hooks/useNovels';
+import { useAINovelGenerator } from '@/hooks/useAINovelGenerator';
 import { 
   BookOpen, 
   Star, 
@@ -16,37 +20,63 @@ import {
   Users,
   Award,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Wand2,
+  PenTool
 } from 'lucide-react';
 
 const NovelPage: React.FC = () => {
   const { user, profile } = useUser();
   const { 
     todayNovel, 
-    loading, 
+    loading: novelsLoading, 
     markAsRead, 
-    generateDailyNovel,
     hasRead, 
     getNovelsByType 
   } = useNovels();
+  const { loading: aiLoading, generateDailyNovel, generateCustomNovel } = useAINovelGenerator();
   const [activeTab, setActiveTab] = useState('today');
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('浪漫');
+  const [showCustomGenerator, setShowCustomGenerator] = useState(false);
 
   const recentNovels = getNovelsByType('recent');
   const popularNovels = getNovelsByType('popular');
+
+  const genres = ['浪漫', '奇幻', '懸疑', '科幻', '都市', '歷史', '冒險', '溫馨'];
+
+  const handleGenerateDailyNovel = async () => {
+    const result = await generateDailyNovel();
+    if (result) {
+      // 重新載入小說列表
+      window.location.reload();
+    }
+  };
+
+  const handleGenerateCustomNovel = async () => {
+    if (!customPrompt.trim()) {
+      return;
+    }
+    
+    const result = await generateCustomNovel(customPrompt, selectedGenre);
+    if (result) {
+      setCustomPrompt('');
+      setShowCustomGenerator(false);
+      // 重新載入小說列表
+      window.location.reload();
+    }
+  };
 
   const getGenreColor = (genre: string) => {
     const colors: Record<string, string> = {
       '浪漫': 'bg-pink-100 text-pink-700',
       '奇幻': 'bg-purple-100 text-purple-700',
       '懸疑': 'bg-gray-100 text-gray-700',
-      '玄幻': 'bg-blue-100 text-blue-700',
-      '修真': 'bg-green-100 text-green-700',
-      '生活': 'bg-green-100 text-green-700',
-      '娛樂': 'bg-yellow-100 text-yellow-700',
-      '文化': 'bg-indigo-100 text-indigo-700',
-      '社會': 'bg-red-100 text-red-700',
-      '人文': 'bg-purple-100 text-purple-700',
-      '都市': 'bg-blue-100 text-blue-700',
+      '科幻': 'bg-blue-100 text-blue-700',
+      '都市': 'bg-green-100 text-green-700',
+      '歷史': 'bg-yellow-100 text-yellow-700',
+      '冒險': 'bg-orange-100 text-orange-700',
+      '溫馨': 'bg-teal-100 text-teal-700',
       '其他': 'bg-gray-100 text-gray-700'
     };
     return colors[genre] || 'bg-gray-100 text-gray-700';
@@ -57,7 +87,7 @@ const NovelPage: React.FC = () => {
       <div className="text-center py-20">
         <BookOpen className="w-16 h-16 mx-auto text-blue-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2">請先登入</h2>
-        <p className="text-muted-foreground">需要登入才能閱讀每日小說</p>
+        <p className="text-muted-foreground">需要登入才能閱讀AI生成的小說</p>
       </div>
     );
   }
@@ -67,22 +97,83 @@ const NovelPage: React.FC = () => {
       {/* 頁面標題 */}
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-          每日小說
+          AI每日小說
         </h1>
         <p className="text-muted-foreground">
-          每天為您精選優質小說，享受閱讀的美好時光
+          體驗AI創作的精彩小說，每天都有新驚喜
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={generateDailyNovel}
-          disabled={loading}
-          className="ml-2"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          更新每日小說
-        </Button>
+        <div className="flex justify-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGenerateDailyNovel}
+            disabled={aiLoading || novelsLoading}
+          >
+            <Wand2 className={`w-4 h-4 mr-2 ${aiLoading ? 'animate-spin' : ''}`} />
+            AI生成今日小說
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowCustomGenerator(!showCustomGenerator)}
+          >
+            <PenTool className="w-4 h-4 mr-2" />
+            自定義生成
+          </Button>
+        </div>
       </div>
+
+      {/* 自定義小說生成器 */}
+      {showCustomGenerator && (
+        <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-purple-700">
+              <Sparkles className="w-5 h-5 mr-2" />
+              AI自定義小說生成器
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">小說類型</label>
+              <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {genres.map(genre => (
+                    <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">故事提示詞</label>
+              <Textarea
+                placeholder="請描述您想要的故事內容，例如：一個關於時間旅行的浪漫愛情故事..."
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                onClick={handleGenerateCustomNovel} 
+                disabled={!customPrompt.trim() || aiLoading}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                <Wand2 className={`w-4 h-4 mr-2 ${aiLoading ? 'animate-spin' : ''}`} />
+                生成小說
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCustomGenerator(false)}
+              >
+                取消
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 用戶狀態卡片 */}
       <Card className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
@@ -92,7 +183,7 @@ const NovelPage: React.FC = () => {
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm opacity-90">讀者</p>
+              <p className="text-sm opacity-90">AI小說讀者</p>
               <p className="text-xl font-bold">{profile?.display_name || profile?.username}</p>
             </div>
           </div>
@@ -114,11 +205,11 @@ const NovelPage: React.FC = () => {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="today" className="flex items-center space-x-2">
             <Calendar className="w-4 h-4" />
-            <span>今日推薦</span>
+            <span>今日AI小說</span>
           </TabsTrigger>
           <TabsTrigger value="recent" className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
-            <span>最近更新</span>
+            <span>最近生成</span>
           </TabsTrigger>
           <TabsTrigger value="popular" className="flex items-center space-x-2">
             <TrendingUp className="w-4 h-4" />
@@ -135,9 +226,9 @@ const NovelPage: React.FC = () => {
                     <Badge className={getGenreColor(todayNovel.genre)}>
                       {todayNovel.genre}
                     </Badge>
-                    <Badge className="bg-red-100 text-red-700">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      今日推薦
+                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                      <Wand2 className="w-3 h-3 mr-1" />
+                      AI生成
                     </Badge>
                   </div>
                   <Button
@@ -174,11 +265,11 @@ const NovelPage: React.FC = () => {
                 <div className="flex items-center justify-between pt-4">
                   <div className="flex items-center space-x-2">
                     <Heart className="w-4 h-4 text-red-500" />
-                    <span className="text-sm text-muted-foreground">喜歡這篇小說嗎？</span>
+                    <span className="text-sm text-muted-foreground">喜歡這篇AI小說嗎？</span>
                   </div>
                   <Button 
                     onClick={() => markAsRead(todayNovel.id)}
-                    disabled={hasRead(todayNovel.id) || loading}
+                    disabled={hasRead(todayNovel.id) || novelsLoading}
                     className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                   >
                     {hasRead(todayNovel.id) ? (
@@ -199,18 +290,23 @@ const NovelPage: React.FC = () => {
           ) : (
             <Card className="text-center py-12">
               <CardContent>
-                <BookOpen className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-xl font-bold mb-2">暫無今日小說</h3>
-                <p className="text-muted-foreground mb-4">請點擊上方的"更新每日小說"按鈕獲取最新內容</p>
-                <Button onClick={generateDailyNovel} disabled={loading}>
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  獲取今日小說
+                <Wand2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-xl font-bold mb-2">暫無今日AI小說</h3>
+                <p className="text-muted-foreground mb-4">點擊上方按鈕讓AI為您生成精彩小說</p>
+                <Button 
+                  onClick={handleGenerateDailyNovel} 
+                  disabled={aiLoading}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                >
+                  <Wand2 className={`w-4 h-4 mr-2 ${aiLoading ? 'animate-spin' : ''}`} />
+                  AI生成今日小說
                 </Button>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
+        {/* 保持其他標籤頁的現有代碼 */}
         <TabsContent value="recent" className="space-y-4">
           {recentNovels.length > 0 ? recentNovels.map((novel) => (
             <Card key={novel.id} className="hover:shadow-lg transition-all duration-300">
@@ -250,7 +346,7 @@ const NovelPage: React.FC = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => markAsRead(novel.id)}
-                    disabled={hasRead(novel.id) || loading}
+                    disabled={hasRead(novel.id) || novelsLoading}
                   >
                     {hasRead(novel.id) ? (
                       <>
@@ -271,7 +367,7 @@ const NovelPage: React.FC = () => {
             <Card className="text-center py-12">
               <CardContent>
                 <Clock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-xl font-bold mb-2">暫無最近更新</h3>
+                <h3 className="text-xl font-bold mb-2">暫無最近生成</h3>
                 <p className="text-muted-foreground">還沒有其他小說，請稍後再來查看</p>
               </CardContent>
             </Card>
@@ -308,7 +404,7 @@ const NovelPage: React.FC = () => {
                     <span>作者：{novel.author}</span>
                     <span className="flex items-center">
                       <Users className="w-4 h-4 mr-1" />
-                      {novel.views} 閱讀
+                      {novel.views}
                     </span>
                     <span className="flex items-center">
                       <Star className="w-4 h-4 mr-1 fill-current text-yellow-500" />
@@ -319,7 +415,7 @@ const NovelPage: React.FC = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => markAsRead(novel.id)}
-                    disabled={hasRead(novel.id) || loading}
+                    disabled={hasRead(novel.id) || novelsLoading}
                   >
                     {hasRead(novel.id) ? (
                       <>
@@ -352,9 +448,9 @@ const NovelPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="text-center">
           <CardContent className="pt-6">
-            <BookOpen className="w-8 h-8 mx-auto text-blue-500 mb-2" />
+            <Wand2 className="w-8 h-8 mx-auto text-purple-500 mb-2" />
             <div className="text-2xl font-bold">{recentNovels.length + popularNovels.length + (todayNovel ? 1 : 0)}</div>
-            <p className="text-sm text-muted-foreground">總小說數量</p>
+            <p className="text-sm text-muted-foreground">AI生成小說總數</p>
           </CardContent>
         </Card>
         

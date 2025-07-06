@@ -9,7 +9,6 @@ import WalletPage from '@/components/WalletPage';
 import ShopPage from '@/components/ShopPage';
 import AdminPage from '@/components/AdminPage';
 import InfoPage from '@/components/InfoPage';
-import AIWebBuilder from '@/components/AIWebBuilder';
 
 const Index = () => {
   const { isLoggedIn, isLoading } = useUser();
@@ -45,8 +44,6 @@ const Index = () => {
         return <InfoPage />;
       case 'admin':
         return <AdminPage />;
-      case 'ai-web':
-        return <AIWebBuilder />;
       default:
         return <HomePage onPageChange={setCurrentPage} />;
     }

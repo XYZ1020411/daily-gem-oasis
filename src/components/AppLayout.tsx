@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, Menu, X, Home, BookOpen, Wallet, ShoppingBag, Settings, LogOut, MessageSquare, Info, Wand2 } from 'lucide-react';
+import { Moon, Sun, Menu, X, Home, BookOpen, Wallet, ShoppingBag, Settings, LogOut, MessageSquare, Info, Gift } from 'lucide-react';
 import CustomerServiceScript from './CustomerServiceScript';
 
 interface AppLayoutProps {
@@ -20,11 +20,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
 
   const menuItems = [
     { id: 'home', label: '首頁', icon: Home },
-    { id: 'novels', label: '每日小說', icon: BookOpen },
+    { id: 'novels', label: 'AI每日小說', icon: BookOpen },
     { id: 'wallet', label: '我的錢包', icon: Wallet },
     { id: 'shop', label: '積分商城', icon: ShoppingBag },
     { id: 'info', label: '資訊服務', icon: Info },
-    { id: 'ai-web', label: 'AI 網頁生成', icon: Wand2 },
     ...(profile?.role === 'admin' ? [{ id: 'admin', label: '管理後台', icon: Settings }] : [])
   ];
 
@@ -147,7 +146,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
           size="lg"
           className="rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
           onClick={() => {
-            // 觸發客服聊天窗口
             console.log('打開客服聊天');
           }}
         >
