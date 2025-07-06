@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +23,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [transactions, setTransactions] = useState<any[]>([]);
   const { toast } = useToast();
 
-  // 使用新的數據庫 hook
   const {
     products,
     exchanges,
@@ -45,23 +43,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadData
   } = useDatabase();
 
-  // 簡化 isLoggedIn 計算
   const isLoggedIn = !!(user && (profile || isTestMode));
 
+  // 簡化認證初始化 - 移除複雜的超時邏輯
   useEffect(() => {
     let mounted = true;
     
-    // 優化認證初始化
     const initAuth = async () => {
       try {
+        // 直接獲取當前 session，不等待
         const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
-          if (session) {
+          if (session?.user) {
             setUser(session.user);
-            await fetchProfile(session.user.id);
+            // 非阻塞式載入 profile
+            fetchProfile(session.user.id).finally(() => {
+              if (mounted) setIsLoading(false);
+            });
+          } else {
+            setIsLoading(false);
           }
-          setIsLoading(false);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -71,11 +73,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    // 簡化認證狀態監聽
+    // 監聽認證狀態變化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
@@ -83,8 +85,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
         setIsTestMode(false);
       }
-      
-      if (mounted) setIsLoading(false);
     });
 
     return () => {
@@ -93,8 +93,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // 簡化用戶列表載入
+  // 延遲載入用戶列表 - 不阻塞主要載入
   useEffect(() => {
+    if (!isLoggedIn) return;
+    
     const fetchUsers = async () => {
       try {
         const { data, error } = await supabase.from('profiles').select('*');
@@ -111,8 +113,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    fetchUsers();
-  }, []);
+    // 延遲 500ms 載入，避免阻塞主要 UI
+    const timer = setTimeout(fetchUsers, 500);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -133,15 +137,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return typedProfile;
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: "載入個人資料失敗",
-        description: error.message || "無法載入您的個人資料",
-        variant: "destructive"
-      });
+      // 不顯示錯誤 toast，避免影響載入體驗
     }
   };
 
-  // 優化特殊登錄處理
   const handleSpecialLogin = async (username: string, password: string) => {
     const specialAccounts = {
       'vip001': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
@@ -187,7 +186,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     throw new Error("用戶名稱或密碼錯誤");
   };
 
-  // 簡化登錄邏輯
   const signIn = async (usernameOrEmail: string, password: string) => {
     setIsLoading(true);
     
@@ -225,7 +223,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 簡化註冊邏輯
   const signUp = async (email: string, password: string, displayName: string) => {
     setIsLoading(true);
     try {
@@ -253,7 +250,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 簡化登出邏輯
   const signOut = async () => {
     if (isTestMode) {
       setUser(null);
@@ -273,23 +269,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 簡化更新個人資料
   const updateProfile = async (updates: Partial<UserContextType['profile']>) => {
-    if (!profile) {
-      toast({
-        title: "錯誤",
-        description: "找不到用戶個人資料",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!profile) return;
 
     if (isTestMode) {
       setProfile(prev => prev ? { ...prev, ...updates } : prev);
-      toast({
-        title: "更新成功",
-        description: "您的個人資料已成功更新",
-      });
       return;
     }
 
@@ -310,22 +294,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setProfile(typedProfile);
       setUsers(prevUsers => prevUsers.map(u => u.id === profile.id ? { ...u, ...updates } : u));
-
-      toast({
-        title: "更新成功",
-        description: "您的個人資料已成功更新",
-      });
     } catch (error: any) {
       console.error('更新個人資料錯誤:', error);
-      toast({
-        title: "更新失敗",
-        description: error.message || "更新個人資料時發生錯誤，請重試",
-        variant: "destructive"
-      });
     }
   };
 
-  // 其他必要方法的簡化版本
   const updateUserById = async (userId: string, updates: Partial<UserContextType['profile']>) => {
     try {
       const { data, error } = await supabase
@@ -337,14 +310,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, ...updates } : u));
-      toast({ title: "更新成功", description: "用戶資料已成功更新" });
     } catch (error: any) {
       console.error('更新用戶資料錯誤:', error);
-      toast({
-        title: "更新失敗",
-        description: error.message || "更新用戶資料時發生錯誤，請重試",
-        variant: "destructive"
-      });
     }
   };
 
@@ -353,22 +320,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.from('profiles').delete().eq('id', userId);
       if (error) throw error;
       setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-      toast({ title: "刪除成功", description: "用戶已成功刪除" });
     } catch (error: any) {
       console.error('刪除用戶錯誤:', error);
-      toast({
-        title: "刪除失敗",
-        description: error.message || "刪除用戶時發生錯誤，請重試",
-        variant: "destructive"
-      });
     }
   };
 
   const updatePoints = async (amount: number, description: string) => {
-    if (!profile) {
-      toast({ title: "錯誤", description: "找不到用戶個人資料", variant: "destructive" });
-      return;
-    }
+    if (!profile) return;
 
     if (isTestMode) {
       setProfile(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
@@ -381,10 +339,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: amount > 0 ? 'earn' : 'spend'
       };
       setTransactions(prev => [transaction, ...prev]);
-      toast({
-        title: "積分更新",
-        description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
-      });
       return;
     }
 
@@ -411,18 +365,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: amount > 0 ? 'earn' : 'spend'
       };
       setTransactions(prev => [transaction, ...prev]);
-
-      toast({
-        title: "積分更新",
-        description: `您的積分已更新 ${amount > 0 ? '增加' : '減少'} ${Math.abs(amount)} 點`,
-      });
     } catch (error: any) {
       console.error('更新積分錯誤:', error);
-      toast({
-        title: "更新失敗",
-        description: error.message || "更新積分時發生錯誤，請重試",
-        variant: "destructive"
-      });
     }
   };
 
@@ -462,18 +406,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser({ id: testAccounts[accountType].id });
     setIsTestMode(true);
     setIsLoading(false);
-    
-    toast({
-      title: "切換成功",
-      description: `已切換到測試帳號 ${testAccounts[accountType].username}`,
-    });
   };
 
   const checkIn = () => {
-    if (!profile) {
-      toast({ title: "錯誤", description: "找不到用戶個人資料", variant: "destructive" });
-      return;
-    }
+    if (!profile) return;
 
     const today = new Date().toISOString().split('T')[0];
     if (profile.last_check_in === today) {
@@ -511,7 +447,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       { email: 'admin002@game.local', password: '002password', role: 'admin' }
     ];
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     return { accounts };
   };
 

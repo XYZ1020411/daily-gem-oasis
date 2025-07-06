@@ -15,19 +15,18 @@ const Index = () => {
   const { isLoggedIn, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState('home');
 
-  // 簡化載入狀態
+  // 優化載入狀態顯示
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-white text-lg">載入中...</p>
+          <div className="w-12 h-12 border-3 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-white text-sm">載入中...</p>
         </div>
       </div>
     );
   }
 
-  // 未登入時顯示認證頁面
   if (!isLoggedIn) {
     return <AuthPage />;
   }

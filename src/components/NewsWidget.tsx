@@ -24,14 +24,19 @@ const NewsWidget: React.FC = () => {
   const fetchNews = async () => {
     setLoading(true);
     try {
-      // 修復 API 調用：移除不支持的 category 參數，改用 qInTitle 參數
-      const response = await fetch(
+      // 使用 Promise.race 設置 5 秒超時，避免長時間等待
+      const fetchPromise = fetch(
         'https://newsdata.io/api/1/news?apikey=pub_77914c9ab741571647f817116519227c8df64&country=tw&language=zh&qInTitle=台灣&size=5'
       );
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('請求超時')), 5000)
+      );
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
       const data = await response.json();
       
       if (data.status === 'success' && data.results) {
-        // 轉換新聞數據格式以匹配原有接口
         const formattedArticles = data.results.map((item: any) => ({
           title: item.title || '無標題',
           description: item.description || item.content || '無描述',
@@ -63,21 +68,28 @@ const NewsWidget: React.FC = () => {
           url: '#',
           publishedAt: new Date().toISOString(),
           source: { name: '環境週刊' }
+        },
+        {
+          title: '數位轉型加速進行',
+          description: '企業積極進行數位轉型，提升營運效率與競爭力。',
+          url: '#',
+          publishedAt: new Date().toISOString(),
+          source: { name: '商業週刊' }
         }
       ];
       setArticles(fallbackNews);
-      
-      toast({
-        title: "新聞載入提示",
-        description: "顯示本地新聞內容",
-      });
     } finally {
       setLoading(false);
     }
   };
 
+  // 延遲載入新聞，避免阻塞主要載入
   useEffect(() => {
-    fetchNews();
+    const timer = setTimeout(() => {
+      fetchNews();
+    }, 1000); // 延遲 1 秒載入
+
+    return () => clearTimeout(timer);
   }, []);
 
   const formatDate = (dateString: string) => {
