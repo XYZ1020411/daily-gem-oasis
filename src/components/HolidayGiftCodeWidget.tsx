@@ -71,6 +71,8 @@ const HolidayGiftCodeWidget: React.FC = () => {
           description: `${holiday}特別禮包碼已生成`,
         });
         loadTodayGiftCodes();
+      } else {
+        throw new Error(data.error || '生成失敗');
       }
     } catch (error: any) {
       console.error('生成節日禮包碼失敗:', error);
@@ -142,7 +144,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Gift className="w-5 h-5 text-purple-500" />
-            <CardTitle className="text-lg">節日禮包碼公告</CardTitle>
+            <CardTitle className="text-lg">AI節日禮包碼公告</CardTitle>
           </div>
           <div className="flex space-x-2">
             {todayHoliday && (
@@ -153,7 +155,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
                 disabled={generating}
               >
                 <Sparkles className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-                生成{todayHoliday}禮包碼
+                AI生成{todayHoliday}禮包碼
               </Button>
             )}
             <Button
@@ -173,7 +175,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-purple-600" />
               <span className="text-sm font-medium text-purple-700">
-                今日節日：{todayHoliday} 🎉
+                今日節日：{todayHoliday} 🎉 可使用AI生成專屬禮包碼！
               </span>
             </div>
           </div>
@@ -200,7 +202,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
                         {giftCode.code}
                       </span>
                       <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded">
-                        {giftCode.holiday}
+                        AI生成·{giftCode.holiday}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -222,8 +224,10 @@ const HolidayGiftCodeWidget: React.FC = () => {
           <div className="text-center py-6 text-muted-foreground">
             <Gift className="w-12 h-12 mx-auto mb-2 opacity-50" />
             <p className="text-sm">今日暫無節日禮包碼</p>
-            {!todayHoliday && (
+            {!todayHoliday ? (
               <p className="text-xs mt-1">非節日期間，請期待特殊節日活動！</p>
+            ) : (
+              <p className="text-xs mt-1">點擊上方按鈕讓AI為您生成專屬節日禮包碼</p>
             )}
           </div>
         )}

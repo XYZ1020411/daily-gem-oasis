@@ -22,7 +22,7 @@ export const useAINovelGenerator = () => {
       if (data.success) {
         toast({
           title: "AI小說生成成功！",
-          description: "今日小說已更新",
+          description: "今日小說已更新，快去閱讀吧！",
         });
         return data.novel;
       } else {
