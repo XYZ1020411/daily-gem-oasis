@@ -65,57 +65,44 @@ export const useDatabase = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // 載入初始數據
-  const loadData = async () => {
-    setLoading(true);
+  // 簡化的載入公告（最重要的資料）
+  const loadAnnouncements = async () => {
     try {
-      // 載入商品
-      const { data: productsData } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      // 載入兌換記錄
-      const { data: exchangesData } = await supabase
-        .from('exchanges')
-        .select('*')
-        .order('request_date', { ascending: false });
-
-      // 載入公告
-      const { data: announcementsData } = await supabase
+      const { data } = await supabase
         .from('announcements')
         .select('*')
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-      // 載入禮品碼 (僅管理員可見)
-      const { data: giftCodesData } = await supabase
-        .from('gift_codes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (productsData) setProducts(productsData as Product[]);
-      if (exchangesData) {
-        const typedExchanges = exchangesData.map(exchange => ({
-          ...exchange,
-          status: exchange.status as 'pending' | 'approved' | 'completed' | 'rejected'
-        })) as Exchange[];
-        setExchanges(typedExchanges);
-      }
-      if (announcementsData) {
-        const typedAnnouncements = announcementsData.map(announcement => ({
+      if (data) {
+        const typedAnnouncements = data.map(announcement => ({
           ...announcement,
           type: announcement.type as 'info' | 'warning' | 'success' | 'urgent'
         })) as Announcement[];
         setAnnouncements(typedAnnouncements);
       }
-      if (giftCodesData) setGiftCodes(giftCodesData as GiftCode[]);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading announcements:', error);
+    }
+  };
+
+  // 按需載入其他資料
+  const loadProducts = async () => {
+    if (products.length > 0) return; // 避免重複載入
+    setLoading(true);
+    try {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      
+      if (data) setProducts(data as Product[]);
+    } catch (error) {
       toast({
-        title: "載入失敗",
-        description: "無法載入數據",
+        title: "載入商品失敗",
+        description: "無法載入商品資料",
         variant: "destructive"
       });
     } finally {
@@ -123,68 +110,52 @@ export const useDatabase = () => {
     }
   };
 
-  // 設置實時監聽
+  const loadExchanges = async () => {
+    if (exchanges.length > 0) return;
+    setLoading(true);
+    try {
+      const { data } = await supabase
+        .from('exchanges')
+        .select('*')
+        .order('request_date', { ascending: false })
+        .limit(20);
+
+      if (data) {
+        const typedExchanges = data.map(exchange => ({
+          ...exchange,
+          status: exchange.status as 'pending' | 'approved' | 'completed' | 'rejected'
+        })) as Exchange[];
+        setExchanges(typedExchanges);
+      }
+    } catch (error) {
+      toast({
+        title: "載入兌換記錄失敗",
+        description: "無法載入兌換資料",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadGiftCodes = async () => {
+    if (giftCodes.length > 0) return;
+    try {
+      const { data } = await supabase
+        .from('gift_codes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (data) setGiftCodes(data as GiftCode[]);
+    } catch (error) {
+      console.error('Error loading gift codes:', error);
+    }
+  };
+
+  // 初始載入只載入公告
   useEffect(() => {
-    loadData();
-
-    // 監聽商品變更
-    const productsChannel = supabase
-      .channel('products-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'products'
-      }, (payload) => {
-        console.log('Products change:', payload);
-        loadData();
-      })
-      .subscribe();
-
-    // 監聽兌換記錄變更
-    const exchangesChannel = supabase
-      .channel('exchanges-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'exchanges'
-      }, (payload) => {
-        console.log('Exchanges change:', payload);
-        loadData();
-      })
-      .subscribe();
-
-    // 監聽公告變更
-    const announcementsChannel = supabase
-      .channel('announcements-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'announcements'
-      }, (payload) => {
-        console.log('Announcements change:', payload);
-        loadData();
-      })
-      .subscribe();
-
-    // 監聽禮品碼變更
-    const giftCodesChannel = supabase
-      .channel('gift-codes-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'gift_codes'
-      }, (payload) => {
-        console.log('Gift codes change:', payload);
-        loadData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(productsChannel);
-      supabase.removeChannel(exchangesChannel);
-      supabase.removeChannel(announcementsChannel);
-      supabase.removeChannel(giftCodesChannel);
-    };
+    loadAnnouncements();
   }, []);
 
   // 商品操作
@@ -731,6 +702,9 @@ export const useDatabase = () => {
         throw error;
       }
     },
-    loadData
+    loadProducts,
+    loadExchanges,
+    loadGiftCodes,
+    loadAnnouncements
   };
 };

@@ -63,5 +63,8 @@ export interface UserContextType {
   addGiftCode: (giftCodeData: Omit<GiftCode, 'id' | 'created_at' | 'sync_version' | 'last_modified'>) => Promise<GiftCode>;
   updateGiftCode: (id: string, updates: Partial<GiftCode>) => Promise<GiftCode>;
   deleteGiftCode: (id: string) => Promise<void>;
-  loadData: () => Promise<void>;
+  loadProducts: () => Promise<void>;
+  loadExchanges: () => Promise<void>;
+  loadGiftCodes: () => Promise<void>;
+  loadAnnouncements: () => Promise<void>;
 }

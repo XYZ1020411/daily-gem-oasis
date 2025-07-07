@@ -40,7 +40,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addGiftCode,
     updateGiftCode,
     deleteGiftCode,
-    loadData
+    loadProducts,
+    loadExchanges,
+    loadGiftCodes,
+    loadAnnouncements
   } = useDatabase();
 
   const isLoggedIn = !!(user && (profile || isTestMode));
@@ -93,30 +96,30 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // 延遲載入用戶列表 - 不阻塞主要載入
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('*');
-        if (error) throw error;
-        
-        const typedUsers = (data || []).map(user => ({
-          ...user,
-          role: user.role as 'admin' | 'vip' | 'user'
-        })) as User[];
+  // 移除延遲載入用戶 - 減少初始載入負擔
+  // useEffect(() => {
+  //   if (!isLoggedIn) return;
+  //   
+  //   const fetchUsers = async () => {
+  //     try {
+  //       const { data, error } = await supabase.from('profiles').select('*');
+  //       if (error) throw error;
+  //       
+  //       const typedUsers = (data || []).map(user => ({
+  //         ...user,
+  //         role: user.role as 'admin' | 'vip' | 'user'
+  //       })) as User[];
 
-        setUsers(typedUsers);
-      } catch (error: any) {
-        console.error('Error fetching users:', error);
-      }
-    };
+  //       setUsers(typedUsers);
+  //     } catch (error: any) {
+  //       console.error('Error fetching users:', error);
+  //     }
+  //   };
 
-    // 延遲 500ms 載入，避免阻塞主要 UI
-    const timer = setTimeout(fetchUsers, 500);
-    return () => clearTimeout(timer);
-  }, [isLoggedIn]);
+  //   // 延遲 500ms 載入，避免阻塞主要 UI
+  //   const timer = setTimeout(fetchUsers, 500);
+  //   return () => clearTimeout(timer);
+  // }, [isLoggedIn]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -486,7 +489,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addGiftCode,
     updateGiftCode,
     deleteGiftCode,
-    loadData
+    loadProducts,
+    loadExchanges,
+    loadGiftCodes,
+    loadAnnouncements
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

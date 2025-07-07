@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,29 @@ import {
 } from 'lucide-react';
 
 const ShopPage = () => {
-  const { user, profile, products, exchanges, updatePoints, addExchange } = useUser();
+  const { user, profile, products, exchanges, updatePoints, addExchange, loadProducts, loadExchanges } = useUser();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState('全部');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 進入商城時才載入所需資料
+  useEffect(() => {
+    const loadShopData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          loadProducts(),
+          loadExchanges()
+        ]);
+      } catch (error) {
+        console.error('載入商城資料失敗:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadShopData();
+  }, []);
 
   const categories = ['全部', '電子產品', '餐飲券', '購物券'];
 
@@ -116,6 +136,17 @@ const ShopPage = () => {
 
   if (!user) {
     return <div>請先登入</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">載入商城資料中...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

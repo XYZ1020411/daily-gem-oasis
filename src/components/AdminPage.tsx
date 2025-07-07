@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,15 +45,50 @@ const AdminPage = () => {
     deleteAnnouncement,
     addGiftCode,
     updateGiftCode,
-    deleteGiftCode
+    deleteGiftCode,
+    loadProducts,
+    loadExchanges,
+    loadGiftCodes
   } = useUser();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState('users');
+  const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({});
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
+
+  // 按需載入不同分頁的資料
+  const loadTabData = async (tabId: string) => {
+    if (tabLoading[tabId]) return;
+    
+    setTabLoading(prev => ({ ...prev, [tabId]: true }));
+    
+    try {
+      switch (tabId) {
+        case 'products':
+          await loadProducts();
+          break;
+        case 'exchanges':
+          await Promise.all([loadProducts(), loadExchanges()]);
+          break;
+        case 'giftcodes':
+          await loadGiftCodes();
+          break;
+        // users 和 announcements 已經在初始載入
+      }
+    } catch (error) {
+      console.error(`載入 ${tabId} 資料失敗:`, error);
+    } finally {
+      setTabLoading(prev => ({ ...prev, [tabId]: false }));
+    }
+  };
+
+  const handleTabChange = async (tabId: string) => {
+    setActiveTab(tabId);
+    await loadTabData(tabId);
+  };
 
   console.log('AdminPage - profile:', profile);
   console.log('AdminPage - profile.role:', profile?.role);
@@ -257,8 +292,20 @@ const AdminPage = () => {
     </div>
   );
 
-  const renderProductsTab = () => (
-    <div className="space-y-4">
+  const renderProductsTab = () => {
+    if (tabLoading.products) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-muted-foreground">載入商品資料中...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">商品管理</h3>
         <Button onClick={() => setIsAddingProduct(true)}>
@@ -347,11 +394,23 @@ const AdminPage = () => {
           </Card>
         ))}
       </div>
-    </div>
-  );
+    );
+  };
 
-  const renderExchangesTab = () => (
-    <div className="space-y-4">
+  const renderExchangesTab = () => {
+    if (tabLoading.exchanges) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-muted-foreground">載入兌換資料中...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">兌換管理</h3>
         <Badge>待處理: {exchanges.filter(e => e.status === 'pending').length}</Badge>
@@ -415,8 +474,8 @@ const AdminPage = () => {
           );
         })}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAnnouncementsTab = () => (
     <div className="space-y-4">
@@ -512,8 +571,20 @@ const AdminPage = () => {
     </div>
   );
 
-  const renderGiftCodesTab = () => (
-    <div className="space-y-4">
+  const renderGiftCodesTab = () => {
+    if (tabLoading.giftcodes) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-muted-foreground">載入禮品碼資料中...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">禮品碼管理</h3>
         <Button onClick={() => setIsAddingGiftCode(true)}>
@@ -611,8 +682,8 @@ const AdminPage = () => {
           </Card>
         ))}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStatsTab = () => {
     const totalUsers = users.length;
@@ -711,7 +782,7 @@ const AdminPage = () => {
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? "default" : "ghost"}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className="flex items-center space-x-2"
             >
               <Icon className="w-4 h-4" />
