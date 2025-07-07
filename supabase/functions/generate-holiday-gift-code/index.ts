@@ -21,26 +21,29 @@ serve(async (req) => {
   }
 
   try {
-    const { holiday } = await req.json();
+    const { holiday, isManualGeneration = false, adminGenerated = false } = await req.json();
     
-    console.log('生成節日禮包碼:', holiday);
+    console.log('生成節日禮包碼:', holiday, { isManualGeneration, adminGenerated });
 
-    // 檢查今天是否已經生成過節日禮包碼
-    const today = new Date().toISOString().split('T')[0];
-    const { data: existingCode } = await supabase
-      .from('gift_codes')
-      .select('id')
-      .ilike('code', `%HOLIDAY_${holiday.replace(/\s+/g, '_').toUpperCase()}%`)
-      .gte('created_at', today)
-      .single();
+    // 只有在非管理員手動生成時才檢查節日重複生成
+    if (!isManualGeneration) {
+      // 檢查今天是否已經生成過節日禮包碼
+      const today = new Date().toISOString().split('T')[0];
+      const { data: existingCode } = await supabase
+        .from('gift_codes')
+        .select('id')
+        .ilike('code', `%HOLIDAY_${holiday.replace(/\s+/g, '_').toUpperCase()}%`)
+        .gte('created_at', today)
+        .single();
 
-    if (existingCode) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: '今日已生成過該節日的禮包碼'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (existingCode) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '今日已生成過該節日的禮包碼'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // 使用 AI 生成節日相關的禮包碼內容
@@ -158,20 +161,28 @@ serve(async (req) => {
     const discordWebhookUrl = Deno.env.get('DISCORD_WEBHOOK_URL');
     if (discordWebhookUrl) {
       try {
+        const discordMessage = adminGenerated 
+          ? `🎁 **管理員** 生成了新的禮包碼！\n\n活動：**${holiday}**\n禮包碼：**${giftCodeData.code}**\n積分獎勵：${giftCodeData.points} 點\n\n快來領取吧！ 🎁`
+          : `🎉 今天是**${holiday}**！\n\n今天的節日禮包碼是：**${giftCodeData.code}**\n積分獎勵：${giftCodeData.points} 點\n\n快來領取吧！ 🎁`;
+        
+        const embedTitle = adminGenerated 
+          ? '🛠️ 管理員禮包碼生成通知'
+          : '🎊 節日禮包碼生成通知';
+
         await fetch(discordWebhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            content: `🎉 今天是**${holiday}**！\n\n今天的節日禮包碼是：**${giftCodeData.code}**\n積分獎勵：${giftCodeData.points} 點\n\n快來領取吧！ 🎁`,
+            content: discordMessage,
             embeds: [{
-              title: '🎊 節日禮包碼生成通知',
+              title: embedTitle,
               description: giftCodeData.description,
-              color: 0x7C3AED,
+              color: adminGenerated ? 0xFF6B35 : 0x7C3AED,
               fields: [
                 {
-                  name: '節日',
+                  name: adminGenerated ? '活動' : '節日',
                   value: holiday,
                   inline: true
                 },

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Gift, Calendar, Code, Sparkles, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/UserContext';
@@ -19,10 +21,13 @@ interface HolidayGiftCode {
 
 const HolidayGiftCodeWidget: React.FC = () => {
   const [giftCodes, setGiftCodes] = useState<HolidayGiftCode[]>([]);
-  
   const [generating, setGenerating] = useState(false);
+  const [customHoliday, setCustomHoliday] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { profile, updatePoints } = useUser();
+
+  const isAdmin = profile?.role === 'admin';
 
   // 檢查今日節日
   const getTodayHoliday = () => {
@@ -52,6 +57,46 @@ const HolidayGiftCodeWidget: React.FC = () => {
     };
     
     return holidays[`${month}-${date}`] || null;
+  };
+
+  const generateAdminGiftCode = async () => {
+    if (!isAdmin) return;
+
+    const holiday = customHoliday.trim() || '管理員特別活動';
+    setGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-holiday-gift-code', {
+        body: { 
+          holiday,
+          isManualGeneration: true,
+          adminGenerated: true 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "管理員禮包碼生成成功！",
+          description: `${holiday}禮包碼已生成`,
+        });
+        setCustomHoliday('');
+        setDialogOpen(false);
+        loadTodayGiftCodes();
+      } else {
+        throw new Error(data.error || '生成失敗');
+      }
+    } catch (error: any) {
+      console.error('生成管理員禮包碼失敗:', error);
+      toast({
+        title: "生成失敗",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const generateHolidayGiftCode = async () => {
@@ -152,6 +197,47 @@ const HolidayGiftCodeWidget: React.FC = () => {
             <CardTitle className="text-lg">AI節日禮包碼公告</CardTitle>
           </div>
           <div className="flex space-x-2">
+            {isAdmin && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                  >
+                    <Gift className="w-4 h-4 mr-2" />
+                    管理員生成禮包碼
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>管理員手動生成禮包碼</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="customHoliday" className="text-sm font-medium">
+                        節日名稱（可選）
+                      </label>
+                      <Input
+                        id="customHoliday"
+                        value={customHoliday}
+                        onChange={(e) => setCustomHoliday(e.target.value)}
+                        placeholder="例如：特別活動、週年慶等（留空則使用默認）"
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button 
+                      onClick={generateAdminGiftCode}
+                      disabled={generating}
+                      className="w-full"
+                    >
+                      <Sparkles className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                      {generating ? '生成中...' : 'AI生成禮包碼'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
             {todayHoliday && (
               <Button
                 variant="outline"
