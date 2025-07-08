@@ -306,93 +306,94 @@ const AdminPage = () => {
 
     return (
       <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">商品管理</h3>
-        <Button onClick={() => setIsAddingProduct(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          新增商品
-        </Button>
-      </div>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">商品管理</h3>
+          <Button onClick={() => setIsAddingProduct(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            新增商品
+          </Button>
+        </div>
 
-      {isAddingProduct && (
-        <Card>
-          <CardHeader>
-            <CardTitle>新增商品</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddProduct} className="space-y-4">
-              <div>
-                <Label htmlFor="name">商品名稱</Label>
-                <Input id="name" name="name" required />
-              </div>
-              <div>
-                <Label htmlFor="description">商品描述</Label>
-                <Textarea id="description" name="description" required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        {isAddingProduct && (
+          <Card>
+            <CardHeader>
+              <CardTitle>新增商品</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddProduct} className="space-y-4">
                 <div>
-                  <Label htmlFor="price">價格 (積分)</Label>
-                  <Input id="price" name="price" type="number" required />
+                  <Label htmlFor="name">商品名稱</Label>
+                  <Input id="name" name="name" required />
                 </div>
                 <div>
-                  <Label htmlFor="stock">庫存</Label>
-                  <Input id="stock" name="stock" type="number" required />
+                  <Label htmlFor="description">商品描述</Label>
+                  <Textarea id="description" name="description" required />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="category">分類</Label>
-                <select id="category" name="category" className="w-full border rounded px-3 py-2" required>
-                  <option value="電子產品">電子產品</option>
-                  <option value="餐飲券">餐飲券</option>
-                  <option value="購物券">購物券</option>
-                </select>
-              </div>
-              <div className="flex space-x-2">
-                <Button type="submit">新增</Button>
-                <Button type="button" variant="outline" onClick={() => setIsAddingProduct(false)}>
-                  取消
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-      
-      <div className="space-y-3">
-        {products.map((product) => (
-          <Card key={product.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-sm text-muted-foreground">{product.description}</p>
-                  <div className="flex items-center space-x-4 mt-2">
-                    <Badge>{product.category}</Badge>
-                    <span className="text-sm">價格: {product.price} 積分</span>
-                    <span className="text-sm">庫存: {product.stock}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price">價格 (積分)</Label>
+                    <Input id="price" name="price" type="number" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="stock">庫存</Label>
+                    <Input id="stock" name="stock" type="number" required />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="category">分類</Label>
+                  <select id="category" name="category" className="w-full border rounded px-3 py-2" required>
+                    <option value="電子產品">電子產品</option>
+                    <option value="餐飲券">餐飲券</option>
+                    <option value="購物券">購物券</option>
+                  </select>
+                </div>
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="destructive"
-                    onClick={() => {
-                      if (confirm('確定要刪除此商品嗎？')) {
-                        deleteProduct(product.id);
-                        toast({ title: "刪除成功", description: "商品已刪除" });
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <Button type="submit">新增</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsAddingProduct(false)}>
+                    取消
                   </Button>
                 </div>
-              </div>
+              </form>
             </CardContent>
           </Card>
-        ))}
+        )}
+        
+        <div className="space-y-3">
+          {products.map((product) => (
+            <Card key={product.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">{product.description}</p>
+                    <div className="flex items-center space-x-4 mt-2">
+                      <Badge>{product.category}</Badge>
+                      <span className="text-sm">價格: {product.price} 積分</span>
+                      <span className="text-sm">庫存: {product.stock}</span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="outline">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm('確定要刪除此商品嗎？')) {
+                          deleteProduct(product.id);
+                          toast({ title: "刪除成功", description: "商品已刪除" });
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   };
@@ -411,70 +412,71 @@ const AdminPage = () => {
 
     return (
       <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">兌換管理</h3>
-        <Badge>待處理: {exchanges.filter(e => e.status === 'pending').length}</Badge>
-      </div>
-      
-      <div className="space-y-3">
-        {exchanges.map((exchange) => {
-          const exchangeUser = users.find(u => u.id === exchange.user_id);
-          const product = products.find(p => p.id === exchange.product_id);
-          
-          return (
-            <Card key={exchange.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{exchangeUser?.username}</p>
-                    <p className="text-sm text-muted-foreground">
-                      兌換商品: {product?.name} x{exchange.quantity}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      總價: {exchange.total_price} 積分
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      申請時間: {new Date(exchange.request_date).toLocaleString('zh-TW')}
-                    </p>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">兌換管理</h3>
+          <Badge>待處理: {exchanges.filter(e => e.status === 'pending').length}</Badge>
+        </div>
+        
+        <div className="space-y-3">
+          {exchanges.map((exchange) => {
+            const exchangeUser = users.find(u => u.id === exchange.user_id);
+            const product = products.find(p => p.id === exchange.product_id);
+            
+            return (
+              <Card key={exchange.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{exchangeUser?.username}</p>
+                      <p className="text-sm text-muted-foreground">
+                        兌換商品: {product?.name} x{exchange.quantity}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        總價: {exchange.total_price} 積分
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        申請時間: {new Date(exchange.request_date).toLocaleString('zh-TW')}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={
+                        exchange.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        exchange.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        exchange.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                        'bg-red-100 text-red-800'
+                      }>
+                        {exchange.status === 'pending' ? '待處理' :
+                         exchange.status === 'approved' ? '已審核' :
+                         exchange.status === 'completed' ? '已完成' : '已拒絕'}
+                      </Badge>
+                      
+                      {exchange.status === 'pending' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleApproveExchange(exchange.id)}
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleRejectExchange(exchange.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={
-                      exchange.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      exchange.status === 'approved' ? 'bg-green-100 text-green-800' :
-                      exchange.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-red-100 text-red-800'
-                    }>
-                      {exchange.status === 'pending' ? '待處理' :
-                       exchange.status === 'approved' ? '已審核' :
-                       exchange.status === 'completed' ? '已完成' : '已拒絕'}
-                    </Badge>
-                    
-                    {exchange.status === 'pending' && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleApproveExchange(exchange.id)}
-                          className="bg-green-500 hover:bg-green-600"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleRejectExchange(exchange.id)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    );
+                </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      );
   };
 
   const renderAnnouncementsTab = () => (
@@ -585,102 +587,103 @@ const AdminPage = () => {
 
     return (
       <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">禮品碼管理</h3>
-        <Button onClick={() => setIsAddingGiftCode(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          新增禮品碼
-        </Button>
-      </div>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">禮品碼管理</h3>
+          <Button onClick={() => setIsAddingGiftCode(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            新增禮品碼
+          </Button>
+        </div>
 
-      {isAddingGiftCode && (
-        <Card>
-          <CardHeader>
-            <CardTitle>新增禮品碼</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddGiftCode} className="space-y-4">
-              <div>
-                <Label htmlFor="code">禮品碼</Label>
-                <Input 
-                  id="code" 
-                  name="code" 
-                  placeholder="例如: WELCOME2024" 
-                  required 
-                  pattern="[A-Z0-9]+"
-                  title="只能包含大寫字母和數字"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        {isAddingGiftCode && (
+          <Card>
+            <CardHeader>
+              <CardTitle>新增禮品碼</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddGiftCode} className="space-y-4">
                 <div>
-                  <Label htmlFor="points">積分價值</Label>
-                  <Input id="points" name="points" type="number" min="1" required />
+                  <Label htmlFor="code">禮品碼</Label>
+                  <Input 
+                    id="code" 
+                    name="code" 
+                    placeholder="例如: WELCOME2024" 
+                    required 
+                    pattern="[A-Z0-9]+"
+                    title="只能包含大寫字母和數字"
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="expiresAt">到期日期</Label>
-                  <Input id="expiresAt" name="expiresAt" type="date" required />
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button type="submit">新增</Button>
-                <Button type="button" variant="outline" onClick={() => setIsAddingGiftCode(false)}>
-                  取消
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-      
-      <div className="space-y-3">
-        {giftCodes.map((giftCode) => (
-          <Card key={giftCode.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <code className="bg-gray-100 px-2 py-1 rounded font-mono text-lg">
-                      {giftCode.code}
-                    </code>
-                    <Badge className={giftCode.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                      {giftCode.is_active ? '啟用' : '停用'}
-                    </Badge>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="points">積分價值</Label>
+                    <Input id="points" name="points" type="number" min="1" required />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">積分價值:</span> {giftCode.points}
-                    </div>
-                    <div>
-                      <span className="font-medium">使用次數:</span> {giftCode.used_by.length}
-                    </div>
-                    <div>
-                      <span className="font-medium">創建日期:</span> {new Date(giftCode.created_at).toLocaleDateString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">到期日期:</span> {new Date(giftCode.expires_at).toLocaleDateString()}
-                    </div>
+                  <div>
+                    <Label htmlFor="expiresAt">到期日期</Label>
+                    <Input id="expiresAt" name="expiresAt" type="date" required />
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button 
-                    size="sm" 
-                    variant={giftCode.is_active ? "outline" : "default"}
-                    onClick={() => handleToggleGiftCode(giftCode.id)}
-                  >
-                    {giftCode.is_active ? '停用' : '啟用'}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="destructive"
-                    onClick={() => handleDeleteGiftCode(giftCode.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <Button type="submit">新增</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsAddingGiftCode(false)}>
+                    取消
                   </Button>
                 </div>
-              </div>
+              </form>
             </CardContent>
           </Card>
-        ))}
+        )}
+        
+        <div className="space-y-3">
+          {giftCodes.map((giftCode) => (
+            <Card key={giftCode.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <code className="bg-gray-100 px-2 py-1 rounded font-mono text-lg">
+                        {giftCode.code}
+                      </code>
+                      <Badge className={giftCode.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        {giftCode.is_active ? '啟用' : '停用'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">積分價值:</span> {giftCode.points}
+                      </div>
+                      <div>
+                        <span className="font-medium">使用次數:</span> {giftCode.used_by.length}
+                      </div>
+                      <div>
+                        <span className="font-medium">創建日期:</span> {new Date(giftCode.created_at).toLocaleDateString()}
+                      </div>
+                      <div>
+                        <span className="font-medium">到期日期:</span> {new Date(giftCode.expires_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="sm" 
+                      variant={giftCode.is_active ? "outline" : "default"}
+                      onClick={() => handleToggleGiftCode(giftCode.id)}
+                    >
+                      {giftCode.is_active ? '停用' : '啟用'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handleDeleteGiftCode(giftCode.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   };
