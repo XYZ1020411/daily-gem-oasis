@@ -22,11 +22,10 @@ interface WeatherData {
 
 const CurrentWeatherWidget: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   const { toast } = useToast();
 
   const fetchCurrentWeather = async () => {
-    setLoading(true);
     try {
       const response = await fetch(
         'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWA-6FC4659D-D65C-4612-928C-CC2CCFFBA42A&locationName=臺北市,新北市,桃園市,臺中市,高雄市'
@@ -45,8 +44,6 @@ const CurrentWeatherWidget: React.FC = () => {
         description: "無法獲取即時天氣，請稍後再試",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -78,31 +75,17 @@ const CurrentWeatherWidget: React.FC = () => {
             <Cloud className="w-5 h-5 text-blue-500" />
             <CardTitle className="text-lg">即時天氣</CardTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button 
+            size="sm" 
+            variant="outline" 
             onClick={fetchCurrentWeather}
-            disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse flex items-center space-x-3">
-                <div className="w-8 h-8 bg-muted rounded"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-muted rounded w-1/2 mb-1"></div>
-                  <div className="h-3 bg-muted rounded w-1/3"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-3">
+        <div className="space-y-3">
             {weatherData.slice(0, 5).map((location, index) => {
               const { weather, temperature, maxTemp, pop } = getWeatherInfo(location);
               return (
@@ -128,8 +111,7 @@ const CurrentWeatherWidget: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

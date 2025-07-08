@@ -28,7 +28,7 @@ const AIWebBuilder: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userPages, setUserPages] = useState<WebPage[]>([]);
   const [dailyUsage, setDailyUsage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [url, setUrl] = useState('');
   const { toast } = useToast();
   const { profile } = useUser();
 
@@ -49,8 +49,6 @@ const AIWebBuilder: React.FC = () => {
       setUserPages(data || []);
     } catch (error) {
       console.error('載入網頁失敗:', error);
-    } finally {
-      setIsLoading(false);
     }
   }, [profile]);
 
@@ -196,14 +194,6 @@ const AIWebBuilder: React.FC = () => {
     }
   }, [profile?.id, loadUserPages, checkDailyUsage, toast]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* 生成器卡片 */}
@@ -256,17 +246,9 @@ const AIWebBuilder: React.FC = () => {
             disabled={isGenerating || dailyUsage >= MAX_DAILY_USAGE || !prompt.trim() || !title.trim()}
             className="w-full"
           >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Wand2 className="mr-2 h-4 w-4" />
-                生成網頁
-              </>
-            )}
+            {isGenerating ? '生成中...' : ''}
+            <Wand2 className="mr-2 h-4 w-4" />
+            生成網頁
           </Button>
           
           {dailyUsage >= MAX_DAILY_USAGE && (

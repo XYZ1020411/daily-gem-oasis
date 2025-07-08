@@ -231,7 +231,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
                       disabled={generating}
                       className="w-full"
                     >
-                      <Sparkles className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                      <Sparkles className="w-4 h-4 mr-2" />
                       {generating ? '生成中...' : 'AI生成禮包碼'}
                     </Button>
                   </div>
@@ -245,7 +245,7 @@ const HolidayGiftCodeWidget: React.FC = () => {
                 onClick={generateHolidayGiftCode}
                 disabled={generating}
               >
-                <Sparkles className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                <Sparkles className="w-4 h-4 mr-2" />
                 AI生成{todayHoliday}禮包碼
               </Button>
             )}

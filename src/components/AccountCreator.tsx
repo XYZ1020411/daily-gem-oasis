@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 const AccountCreator: React.FC = () => {
   const { createRealAccounts } = useUser();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
   const [accounts, setAccounts] = useState<Array<{email: string, password: string, role: string}>>([]);
   const [copiedStates, setCopiedStates] = useState<{[key: string]: boolean}>({});
   const [autoCreated, setAutoCreated] = useState(false);
@@ -24,7 +24,6 @@ const AccountCreator: React.FC = () => {
   }, [autoCreated]);
 
   const handleCreateAccounts = async () => {
-    setLoading(true);
     try {
       const result = await createRealAccounts();
       setAccounts(result.accounts);
@@ -40,8 +39,6 @@ const AccountCreator: React.FC = () => {
         description: "創建帳號時發生錯誤，請重試",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -86,26 +83,6 @@ const AccountCreator: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <span>正在創建特殊帳號...</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              正在為 001、vip8888 和管理員創建真實的 Supabase 帳號，請稍候...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -123,21 +100,11 @@ const AccountCreator: React.FC = () => {
             
             <Button 
               onClick={handleCreateAccounts} 
-              disabled={loading}
               variant="outline"
               className="w-full"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  重新創建帳號...
-                </>
-              ) : (
-                <>
-                  <User className="w-4 h-4 mr-2" />
-                  重新創建帳號
-                </>
-              )}
+              <User className="w-4 h-4 mr-2" />
+              重新創建帳號
             </Button>
           </div>
         </CardContent>

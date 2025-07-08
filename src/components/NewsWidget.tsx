@@ -18,11 +18,10 @@ interface Article {
 
 const NewsWidget: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchNews = async () => {
-    setLoading(true);
     try {
       // 使用 Promise.race 設置 5 秒超時，避免長時間等待
       const fetchPromise = fetch(
@@ -78,8 +77,6 @@ const NewsWidget: React.FC = () => {
         }
       ];
       setArticles(fallbackNews);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -110,28 +107,17 @@ const NewsWidget: React.FC = () => {
             <Newspaper className="w-5 h-5 text-blue-500" />
             <CardTitle className="text-lg">最新新聞</CardTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button 
+            size="sm" 
+            variant="outline" 
             onClick={fetchNews}
-            disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
             {articles.map((article, index) => (
               <div key={index} className="border-b pb-3 last:border-b-0">
                 <h4 className="font-medium text-sm mb-1 line-clamp-2">
@@ -155,8 +141,7 @@ const NewsWidget: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

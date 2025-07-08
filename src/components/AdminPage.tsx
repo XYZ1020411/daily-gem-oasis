@@ -53,42 +53,10 @@ const AdminPage = () => {
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState('users');
-  const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({});
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
-
-  // 按需載入不同分頁的資料
-  const loadTabData = async (tabId: string) => {
-    if (tabLoading[tabId]) return;
-    
-    setTabLoading(prev => ({ ...prev, [tabId]: true }));
-    
-    try {
-      switch (tabId) {
-        case 'products':
-          await loadProducts();
-          break;
-        case 'exchanges':
-          await Promise.all([loadProducts(), loadExchanges()]);
-          break;
-        case 'giftcodes':
-          await loadGiftCodes();
-          break;
-        // users 和 announcements 已經在初始載入
-      }
-    } catch (error) {
-      console.error(`載入 ${tabId} 資料失敗:`, error);
-    } finally {
-      setTabLoading(prev => ({ ...prev, [tabId]: false }));
-    }
-  };
-
-  const handleTabChange = async (tabId: string) => {
-    setActiveTab(tabId);
-    await loadTabData(tabId);
-  };
 
   console.log('AdminPage - profile:', profile);
   console.log('AdminPage - profile.role:', profile?.role);
@@ -293,17 +261,6 @@ const AdminPage = () => {
   );
 
   const renderProductsTab = () => {
-    if (tabLoading.products) {
-      return (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-muted-foreground">載入商品資料中...</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -399,17 +356,6 @@ const AdminPage = () => {
   };
 
   const renderExchangesTab = () => {
-    if (tabLoading.exchanges) {
-      return (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-muted-foreground">載入兌換資料中...</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -574,17 +520,6 @@ const AdminPage = () => {
   );
 
   const renderGiftCodesTab = () => {
-    if (tabLoading.giftcodes) {
-      return (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center space-y-4">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-muted-foreground">載入禮品碼資料中...</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -785,7 +720,7 @@ const AdminPage = () => {
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? "default" : "ghost"}
-              onClick={() => handleTabChange(tab.id)}
+              onClick={() => setActiveTab(tab.id)}
               className="flex items-center space-x-2"
             >
               <Icon className="w-4 h-4" />

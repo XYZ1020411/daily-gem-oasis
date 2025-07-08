@@ -248,8 +248,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('註冊錯誤:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -458,7 +456,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     profile,
     users,
-    isLoading,
+    isLoading: false,
     isLoggedIn,
     signIn,
     signUp,
@@ -477,7 +475,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     exchanges,
     announcements,
     giftCodes,
-    dbLoading,
+    dbLoading: false,
     addProduct,
     updateProduct,
     deleteProduct,

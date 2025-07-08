@@ -10,7 +10,6 @@ import { Loader2, User, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const AuthPage: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,7 +29,7 @@ const AuthPage: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    
     
     try {
       await signIn(email, password);
@@ -56,8 +55,6 @@ const AuthPage: React.FC = () => {
         description: errorMessage,
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -91,8 +88,6 @@ const AuthPage: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
       await signUp(email, password, displayName);
       toast({
@@ -106,8 +101,6 @@ const AuthPage: React.FC = () => {
         description: error.message || "註冊時發生錯誤，請重試",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -165,15 +158,8 @@ const AuthPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      登入中...
-                    </>
-                  ) : (
-                    '登入'
-                  )}
+                <Button type="submit" className="w-full">
+                  登入
                 </Button>
               </form>
             </TabsContent>
@@ -249,15 +235,8 @@ const AuthPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      註冊中...
-                    </>
-                  ) : (
-                    '註冊'
-                  )}
+                <Button type="submit" className="w-full">
+                  註冊
                 </Button>
               </form>
             </TabsContent>

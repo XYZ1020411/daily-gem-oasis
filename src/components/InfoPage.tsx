@@ -31,11 +31,10 @@ interface WeatherAlert {
 
 const InfoPage: React.FC = () => {
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   const { toast } = useToast();
 
   const fetchWeatherAlerts = async () => {
-    setLoading(true);
     try {
       const response = await fetch(
         'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0033-001?Authorization=CWA-6FC4659D-D65C-4612-928C-CC2CCFFBA42A'
@@ -54,8 +53,6 @@ const InfoPage: React.FC = () => {
         description: "無法獲取氣象警報，請稍後再試",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -118,26 +115,17 @@ const InfoPage: React.FC = () => {
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
                   <CardTitle className="text-lg">氣象警報</CardTitle>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <Button 
+                  size="sm" 
+                  variant="outline" 
                   onClick={fetchWeatherAlerts}
-                  disabled={loading}
                 >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-20 bg-muted rounded"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : alerts.length > 0 ? (
+              {alerts.length > 0 ? (
                 <div className="space-y-4">
                   {alerts.map((alert, index) => (
                     <div key={index} className="border rounded-lg p-4 space-y-3">

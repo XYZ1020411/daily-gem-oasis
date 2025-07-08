@@ -12,7 +12,7 @@ const AdminSync: React.FC = () => {
   const { syncData, getAllUserData, syncStatus } = useSync();
   const { toast } = useToast();
   const [allUserData, setAllUserData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [syncStats, setSyncStats] = useState<any>(null);
 
   useEffect(() => {
     if (profile?.role === 'admin') {
@@ -21,7 +21,6 @@ const AdminSync: React.FC = () => {
   }, [profile]);
 
   const loadAllData = async () => {
-    setIsLoading(true);
     try {
       const data = await getAllUserData();
       setAllUserData(data);
@@ -32,8 +31,6 @@ const AdminSync: React.FC = () => {
         description: "無法載入同步資料",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -124,7 +121,6 @@ const AdminSync: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={handleForceSync}
-            disabled={isLoading}
             className="flex items-center space-x-2"
           >
             <RefreshCw className="w-4 h-4" />
@@ -134,7 +130,6 @@ const AdminSync: React.FC = () => {
           <Button
             onClick={loadAllData}
             variant="outline"
-            disabled={isLoading}
             className="flex items-center space-x-2"
           >
             <Download className="w-4 h-4" />
