@@ -18,7 +18,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserContextType['user']>(null);
   const [profile, setProfile] = useState<UserContextType['profile']>(null);
   const [users, setUsers] = useState<UserContextType['users']>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isTestMode, setIsTestMode] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const { toast } = useToast();
@@ -28,7 +27,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     exchanges,
     announcements,
     giftCodes,
-    loading: dbLoading,
     addProduct,
     updateProduct,
     deleteProduct,
@@ -48,35 +46,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isLoggedIn = !!(user && (profile || isTestMode));
 
-  // 簡化認證初始化 - 移除複雜的超時邏輯
+  // 認證初始化
   useEffect(() => {
     let mounted = true;
     
     const initAuth = async () => {
       try {
-        // 直接獲取當前 session，不等待
         const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            // 非阻塞式載入 profile
             fetchProfile(session.user.id).finally(() => {
               if (mounted) setIsLoading(false);
             });
-          } else {
-            setIsLoading(false);
           }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (mounted) setIsLoading(false);
       }
     };
 
     initAuth();
 
-    // 監聽認證狀態變化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
@@ -95,31 +87,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
-
-  // 移除延遲載入用戶 - 減少初始載入負擔
-  // useEffect(() => {
-  //   if (!isLoggedIn) return;
-  //   
-  //   const fetchUsers = async () => {
-  //     try {
-  //       const { data, error } = await supabase.from('profiles').select('*');
-  //       if (error) throw error;
-  //       
-  //       const typedUsers = (data || []).map(user => ({
-  //         ...user,
-  //         role: user.role as 'admin' | 'vip' | 'user'
-  //       })) as User[];
-
-  //       setUsers(typedUsers);
-  //     } catch (error: any) {
-  //       console.error('Error fetching users:', error);
-  //     }
-  //   };
-
-  //   // 延遲 500ms 載入，避免阻塞主要 UI
-  //   const timer = setTimeout(fetchUsers, 500);
-  //   return () => clearTimeout(timer);
-  // }, [isLoggedIn]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -140,7 +107,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return typedProfile;
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      // 不顯示錯誤 toast，避免影響載入體驗
     }
   };
 
@@ -148,7 +114,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const specialAccounts = {
       'vip001': { password: '001password', role: 'vip' as const, display_name: 'VIP會員001', points: 500000, vip_level: 3 },
       'vip8888': { password: 'vip8888password', role: 'vip' as const, display_name: 'VIP會員8888', points: 800000, vip_level: 5 },
-      'admin002': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 }
+      'admin002': { password: '002password', role: 'admin' as const, display_name: '系統管理員', points: 1000000, vip_level: 10 },
+      'testuser': { password: 'test123', role: 'user' as const, display_name: '測試用戶', points: 10000, vip_level: 0 },
+      'demo': { password: 'demo123', role: 'user' as const, display_name: '演示用戶', points: 50000, vip_level: 1 }
     };
 
     const account = specialAccounts[username as keyof typeof specialAccounts];
@@ -190,10 +158,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (usernameOrEmail: string, password: string) => {
-    setIsLoading(true);
-    
     try {
-      const isSpecialAccount = ['vip001', 'vip8888', 'admin002'].includes(usernameOrEmail);
+      const isSpecialAccount = ['vip001', 'vip8888', 'admin002', 'testuser', 'demo'].includes(usernameOrEmail);
       
       if (isSpecialAccount) {
         await handleSpecialLogin(usernameOrEmail, password);
@@ -221,7 +187,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('登入錯誤:', error);
-      setIsLoading(false);
       throw error;
     }
   };

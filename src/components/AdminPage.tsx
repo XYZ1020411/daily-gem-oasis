@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
+import AdminHolidayGiftGenerator from './AdminHolidayGiftGenerator';
 import { 
   Users, 
   Package, 
@@ -57,9 +58,6 @@ const AdminPage = () => {
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isAddingGiftCode, setIsAddingGiftCode] = useState(false);
-
-  console.log('AdminPage - profile:', profile);
-  console.log('AdminPage - profile.role:', profile?.role);
 
   if (!profile || profile.role !== 'admin') {
     return (
@@ -125,6 +123,7 @@ const AdminPage = () => {
     { id: 'exchanges', label: '兌換管理', icon: Gift },
     { id: 'announcements', label: '公告管理', icon: MessageSquare },
     { id: 'giftcodes', label: '禮品碼管理', icon: QrCode },
+    { id: 'holiday-generator', label: 'AI節日禮包碼', icon: Gift },
     { id: 'stats', label: '數據統計', icon: BarChart3 }
   ];
 
@@ -623,6 +622,16 @@ const AdminPage = () => {
     );
   };
 
+  const renderHolidayGeneratorTab = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">AI節日禮包碼生成器</h3>
+      </div>
+      
+      <AdminHolidayGiftGenerator />
+    </div>
+  );
+
   const renderStatsTab = () => {
     const totalUsers = users.length;
     const vipUsers = users.filter(u => u.role === 'vip').length;
@@ -702,7 +711,6 @@ const AdminPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* 頁面標題 */}
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
           管理後台
@@ -712,7 +720,6 @@ const AdminPage = () => {
         </p>
       </div>
 
-      {/* 標籤導航 */}
       <div className="flex space-x-2 border-b">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -730,13 +737,13 @@ const AdminPage = () => {
         })}
       </div>
 
-      {/* 標籤內容 */}
       <div>
         {activeTab === 'users' && renderUsersTab()}
         {activeTab === 'products' && renderProductsTab()}
         {activeTab === 'exchanges' && renderExchangesTab()}
         {activeTab === 'announcements' && renderAnnouncementsTab()}
         {activeTab === 'giftcodes' && renderGiftCodesTab()}
+        {activeTab === 'holiday-generator' && renderHolidayGeneratorTab()}
         {activeTab === 'stats' && renderStatsTab()}
       </div>
     </div>
