@@ -57,9 +57,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            fetchProfile(session.user.id).finally(() => {
-              if (mounted) setIsLoading(false);
-            });
+            fetchProfile(session.user.id);
           }
         }
       } catch (error) {
@@ -192,7 +190,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
-    setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         email: email,
@@ -371,7 +368,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(testAccounts[accountType]);
     setUser({ id: testAccounts[accountType].id });
     setIsTestMode(true);
-    setIsLoading(false);
   };
 
   const checkIn = () => {
