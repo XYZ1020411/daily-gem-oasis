@@ -5,10 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import NewsWidget from './NewsWidget';
 import HolidayGiftCodeWidget from './HolidayGiftCodeWidget';
-import AnnouncementBoard from './AnnouncementBoard';
-import GiftCodeBoard from './GiftCodeBoard';
 import { 
-  BookOpen, 
   Gift, 
   Wallet, 
   ShoppingBag, 
@@ -26,20 +23,6 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
   const { profile } = useUser();
 
   const quickActions = [
-    {
-      title: 'AI每日小說',
-      description: '閱讀AI生成的精彩小說',
-      icon: BookOpen,
-      action: () => onPageChange('novels'),
-      color: 'from-blue-500 to-purple-600'
-    },
-    {
-      title: '節日禮包碼',
-      description: '領取節日特別獎勵',
-      icon: Gift,
-      action: () => {}, // 已在首頁顯示
-      color: 'from-purple-500 to-pink-600'
-    },
     {
       title: '我的錢包',
       description: '查看積分和交易記錄',
@@ -81,7 +64,7 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
       </Card>
 
       {/* 快速操作 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {quickActions.map((action, index) => {
           const Icon = action.icon;
           return (
@@ -103,13 +86,11 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
       </div>
 
       {/* 主要內容區域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <AnnouncementBoard />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
           <NewsWidget />
         </div>
         <div className="space-y-6">
-          <GiftCodeBoard />
           <HolidayGiftCodeWidget />
         </div>
       </div>
