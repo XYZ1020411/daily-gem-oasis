@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser } from '@/contexts/UserContext';
 import { Loader2, User, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +17,26 @@ const AuthPage: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const { signIn, signUp } = useUser();
   const { toast } = useToast();
+
+  const signInWithDiscord = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Discord 登入錯誤:', error);
+      toast({
+        title: "Discord 登入失敗",
+        description: error.message || "登入過程中發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +181,14 @@ const AuthPage: React.FC = () => {
                 
                 <Button type="submit" className="w-full">
                   登入
+                </Button>
+
+                <Button 
+                  type="button"
+                  onClick={signInWithDiscord} 
+                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white"
+                >
+                  使用 Discord 登入
                 </Button>
               </form>
             </TabsContent>

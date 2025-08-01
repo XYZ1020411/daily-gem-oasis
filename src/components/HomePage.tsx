@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import NewsWidget from './NewsWidget';
 import HolidayGiftCodeWidget from './HolidayGiftCodeWidget';
+import AnnouncementBoard from './AnnouncementBoard';
+import GiftCodeBoard from './GiftCodeBoard';
 import { 
   BookOpen, 
   Gift, 
@@ -101,12 +103,15 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
       </div>
 
       {/* 主要內容區域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 節日禮包碼公告區 */}
-        <HolidayGiftCodeWidget />
-        
-        {/* 新聞區域 */}
-        <NewsWidget />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <AnnouncementBoard />
+          <NewsWidget />
+        </div>
+        <div className="space-y-6">
+          <GiftCodeBoard />
+          <HolidayGiftCodeWidget />
+        </div>
       </div>
 
       {/* 統計卡片 */}
