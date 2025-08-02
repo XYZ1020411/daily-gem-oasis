@@ -98,7 +98,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 檢查 Discord 用戶名是否為特殊管理員
       const userData = await supabase.auth.getUser();
-      const discordUsername = userData.data.user?.user_metadata?.full_name || userData.data.user?.user_metadata?.name;
+      const discordUsername = userData.data.user?.user_metadata?.user_name || 
+                            userData.data.user?.user_metadata?.full_name || 
+                            userData.data.user?.user_metadata?.name ||
+                            userData.data.user?.user_metadata?.preferred_username;
       
       let role = data.role as 'admin' | 'vip' | 'user';
       if (discordUsername === 'etcsfxrf_20944' && role !== 'admin') {
