@@ -18,7 +18,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserContextType['user']>(null);
   const [profile, setProfile] = useState<UserContextType['profile']>(null);
   const [users, setUsers] = useState<UserContextType['users']>([]);
-  const [isTestMode, setIsTestMode] = useState(false);
+  
   const [transactions, setTransactions] = useState<any[]>([]);
   const { toast } = useToast();
 
@@ -44,7 +44,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadAnnouncements
   } = useDatabase();
 
-  const isLoggedIn = !!(user && (profile || isTestMode));
+  const isLoggedIn = !!(user && profile);
 
   // 認證初始化
   useEffect(() => {
@@ -76,7 +76,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
-        setIsTestMode(false);
       }
     });
 
@@ -163,15 +162,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         join_date: new Date().toISOString()
       };
 
-      setUser(mockUser);
-      setProfile(mockProfile);
-      setIsTestMode(true);
-
-      toast({
-        title: "登入成功",
-        description: `歡迎回來，${account.display_name}！`,
-      });
-      return;
     }
 
     throw new Error("用戶名稱或密碼錯誤");
@@ -236,13 +226,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    if (isTestMode) {
-      setUser(null);
-      setProfile(null);
-      setIsTestMode(false);
-      return;
-    }
-
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -257,10 +240,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (updates: Partial<UserContextType['profile']>) => {
     if (!profile) return;
 
-    if (isTestMode) {
-      setProfile(prev => prev ? { ...prev, ...updates } : prev);
-      return;
-    }
 
     try {
       const { data, error } = await supabase
@@ -313,20 +292,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updatePoints = async (amount: number, description: string) => {
     if (!profile) return;
 
-    if (isTestMode) {
-      setProfile(prev => prev ? { ...prev, points: (prev.points || 0) + amount } : prev);
-      const transaction = {
-        id: Date.now().toString(),
-        userId: profile.id,
-        amount,
-        description,
-        timestamp: new Date().toISOString(),
-        type: amount > 0 ? 'earn' : 'spend'
-      };
-      setTransactions(prev => [transaction, ...prev]);
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -355,42 +320,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const switchToTestAccount = (accountType: 'vip1' | 'vip2') => {
-    const testAccounts = {
-      vip1: {
-        id: 'test-vip1',
-        username: 'vip001',
-        display_name: 'VIP會員001',
-        email_username: 'vip001',
-        role: 'vip' as const,
-        points: 500000,
-        vip_level: 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        check_in_streak: 15,
-        last_check_in: new Date().toISOString(),
-        join_date: new Date().toISOString()
-      },
-      vip2: {
-        id: 'test-vip2',
-        username: 'vip8888',
-        display_name: 'VIP會員8888',
-        email_username: 'vip8888',
-        role: 'vip' as const,
-        points: 800000,
-        vip_level: 5,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        check_in_streak: 30,
-        last_check_in: new Date().toISOString(),
-        join_date: new Date().toISOString()
-      }
-    };
-
-    setProfile(testAccounts[accountType]);
-    setUser({ id: testAccounts[accountType].id });
-    setIsTestMode(true);
-  };
 
   const checkIn = () => {
     if (!profile) return;
@@ -448,8 +377,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserById,
     deleteUser,
     updatePoints,
-    switchToTestAccount,
-    isTestMode,
     checkIn,
     transactions,
     redeemGiftCode,

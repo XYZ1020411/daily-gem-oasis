@@ -32,9 +32,6 @@ export interface UserContextType {
   deleteUser: (userId: string) => void;
   updatePoints: (amount: number, description: string) => void;
   
-  // 測試模式相關
-  switchToTestAccount: (accountType: 'vip1' | 'vip2') => void;
-  isTestMode: boolean;
   
   // 簽到相關
   checkIn: () => void;

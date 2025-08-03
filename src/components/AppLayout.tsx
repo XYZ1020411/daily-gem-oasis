@@ -7,7 +7,7 @@ import ShopPage from './ShopPage';
 import WalletPage from './WalletPage';
 import AdminPage from './AdminPage';
 import AuthPage from './AuthPage';
-import TestAccountSwitcher from './TestAccountSwitcher';
+
 
 const AppLayout: React.FC = () => {
   const { isLoggedIn } = useUser();
@@ -41,7 +41,7 @@ const AppLayout: React.FC = () => {
           <SidebarTrigger />
           <h1 className="text-xl font-bold">積分會員系統</h1>
         </div>
-        <TestAccountSwitcher />
+        
       </header>
 
       <div className="flex min-h-screen w-full pt-16">
