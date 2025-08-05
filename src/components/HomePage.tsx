@@ -3,8 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
-import NewsWidget from './NewsWidget';
-import HolidayGiftCodeWidget from './HolidayGiftCodeWidget';
+import AnnouncementBoard from './AnnouncementBoard';
+import GiftCodeBoard from './GiftCodeBoard';
 import { 
   Gift, 
   Wallet, 
@@ -88,10 +88,10 @@ const HomePage: React.FC<HomePageProps> = ({ onPageChange }) => {
       {/* 主要內容區域 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <NewsWidget />
+          <AnnouncementBoard />
         </div>
         <div className="space-y-6">
-          <HolidayGiftCodeWidget />
+          <GiftCodeBoard />
         </div>
       </div>
 
