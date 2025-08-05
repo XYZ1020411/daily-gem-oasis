@@ -54,21 +54,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (mounted) {
-          if (session?.user) {
-            setUser(session.user);
-            fetchProfile(session.user.id);
-          }
+        if (mounted && session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
       }
     };
 
-    initAuth();
-
+    // 設置認證狀態監聽器
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      console.log('Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
@@ -78,6 +77,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
       }
     });
+
+    // 初始化認證狀態
+    initAuth();
 
     return () => {
       mounted = false;
